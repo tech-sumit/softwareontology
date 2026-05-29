@@ -52,7 +52,8 @@ packages/auth/
   "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run" },
   "dependencies": {
     "@so/sdk": "workspace:*",
-    "@fastify/cookie": "^11.0.2"
+    "@fastify/cookie": "^11.0.2",
+    "fastify": "^5.2.0"
   },
   "devDependencies": {
     "@so/server": "workspace:*",
