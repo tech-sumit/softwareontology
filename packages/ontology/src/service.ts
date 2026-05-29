@@ -101,7 +101,7 @@ export function createOntologyService(ctx: ModuleContext) {
       properties: ot.properties.map((p) => ({ name: p.apiName, column: p.column, type: p.type })),
       backing: { kind: 's3', path: ctx.objectStore.getObjectUrl(ot.objectKey) },
     };
-    return resolveObjectSet({
+    const rows = await resolveObjectSet({
       mapping,
       pgConnString: ctx.config.require('DATABASE_URL'),
       s3: {
@@ -112,6 +112,14 @@ export function createOntologyService(ctx: ModuleContext) {
         useSsl: ctx.config.get('S3_USE_SSL') === 'true',
       },
       options: options ?? {},
+    });
+    // DuckDB returns 64-bit columns (e.g. a CSV-inferred BIGINT `seats`) as JS
+    // BigInt, which JSON.stringify cannot serialize. The ontology `int` PropType
+    // is a 32-bit JS number, so coerce BigInt cells to Number for the typed API.
+    return rows.map((row) => {
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(row)) out[k] = typeof v === 'bigint' ? Number(v) : v;
+      return out;
     });
   }
 
