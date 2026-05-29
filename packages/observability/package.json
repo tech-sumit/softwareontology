@@ -1,0 +1,10 @@
+{
+  "name": "@so/observability",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run" },
+  "dependencies": { "@so/sdk": "workspace:*", "pino": "^9.6.0" },
+  "devDependencies": { "@types/node": "^22.10.0" }
+}
