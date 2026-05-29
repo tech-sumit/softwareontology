@@ -5,6 +5,6 @@ import { defineConfig } from 'vitest/config';
 // extended timeout for cold DuckDB extension downloads).
 export default defineConfig({
   test: {
-    projects: ['packages/*'],
+    projects: ['packages/*', 'apps/*'],
   },
 });
