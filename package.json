@@ -14,6 +14,9 @@
     "infra:down": "docker compose down -v",
     "infra:seed": "docker compose exec -T postgres psql -U so -d so -v ON_ERROR_STOP=1 < scripts/seed-overlay.sql"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": ["duckdb"]
+  },
   "devDependencies": {
     "turbo": "^2.5.0",
     "typescript": "^5.7.0",

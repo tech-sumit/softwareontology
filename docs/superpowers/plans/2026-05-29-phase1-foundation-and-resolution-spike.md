@@ -92,6 +92,9 @@ packages:
     "infra:down": "docker compose down -v",
     "infra:seed": "docker compose exec -T postgres psql -U so -d so -v ON_ERROR_STOP=1 < scripts/seed-overlay.sql"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": ["duckdb"]
+  },
   "devDependencies": {
     "turbo": "^2.5.0",
     "typescript": "^5.7.0",
@@ -308,7 +311,18 @@ git commit -m "chore: local infra (postgres + minio) and overlay seed"
 ## Task 3: `@so/query` package + types + DuckDB session
 
 **Files:**
-- Create: `packages/query/package.json`, `packages/query/tsconfig.json`, `packages/query/src/types.ts`, `packages/query/src/duckdb.ts`, `packages/query/src/index.ts`
+- Create: `packages/query/package.json`, `packages/query/tsconfig.json`, `packages/query/vitest.config.ts`, `packages/query/src/types.ts`, `packages/query/src/duckdb.ts`, `packages/query/src/index.ts`
+
+> **Build reproducibility (verified during execution):**
+> 1. Root `package.json` must include `"pnpm": { "onlyBuiltDependencies": ["duckdb"] }` (added in Task 1) — otherwise pnpm 10 skips duckdb's native build script and the binding fails to load on a clean install / in CI.
+> 2. Create `packages/query/vitest.config.ts` with `testTimeout: 60_000` — the first `openDuckDb()` on a cold machine downloads the json/postgres/httpfs extensions and exceeds Vitest's 5s default.
+> 3. `packages/query/tsconfig.json` must NOT set `rootDir` while `include` lists `test/**` (triggers TS6059 under `declaration: true`).
+>
+> ```ts
+> // packages/query/vitest.config.ts
+> import { defineConfig } from 'vitest/config';
+> export default defineConfig({ test: { testTimeout: 60_000, hookTimeout: 60_000 } });
+> ```
 
 - [ ] **Step 1: Create `packages/query/package.json`**
 
@@ -339,7 +353,7 @@ git commit -m "chore: local infra (postgres + minio) and overlay seed"
 ```json
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "rootDir": "src", "outDir": "dist", "types": ["node"] },
+  "compilerOptions": { "outDir": "dist", "types": ["node"] },
   "include": ["src/**/*", "test/**/*"]
 }
 ```

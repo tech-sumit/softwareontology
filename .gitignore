@@ -9,6 +9,7 @@ node_modules/
 dist/
 build/
 *.tsbuildinfo
+.turbo/
 
 # Env & secrets
 .env
