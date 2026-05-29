@@ -1,0 +1,16 @@
+{
+  "name": "@so/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run" },
+  "dependencies": {
+    "@so/sdk": "workspace:*",
+    "@so/kernel": "workspace:*",
+    "@so/server": "workspace:*",
+    "@so/observability": "workspace:*",
+    "pg-boss": "^10.1.5"
+  },
+  "devDependencies": { "@types/node": "^22.10.0" }
+}
