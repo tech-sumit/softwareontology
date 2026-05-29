@@ -2,7 +2,11 @@ import type { ObjectTypeMapping, PropType, FilterOp, ResolveOptions } from './ty
 
 const DUCK_TYPE: Record<PropType, string> = {
   string: 'VARCHAR',
-  int: 'BIGINT',
+  // 32-bit INTEGER (not BIGINT): duckdb-async marshals 64-bit BIGINT to a JS
+  // BigInt, but a 32-bit INTEGER comes back as a plain JS number. The ontology
+  // `int` PropType is a 32-bit integer (use `float`/DOUBLE for wider numerics),
+  // so INTEGER is the correct mapping and avoids surprising BigInt results.
+  int: 'INTEGER',
   float: 'DOUBLE',
   bool: 'BOOLEAN',
   timestamp: 'TIMESTAMP',
