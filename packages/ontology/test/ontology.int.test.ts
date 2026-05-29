@@ -29,6 +29,12 @@ describe('ontology: define an object type and resolve its objects', () => {
     await server.kernel.start();
     await server.app.ready();
 
+    // Test isolation: drop any prior 'Flight' object type so re-runs don't hit UNIQUE(org_id, api_name).
+    await server.kernel.ctx.db.query(
+      `DELETE FROM object_properties WHERE object_type_id IN (SELECT id FROM object_types WHERE org_id = 'org_default' AND api_name = 'Flight')`,
+    );
+    await server.kernel.ctx.db.query(`DELETE FROM object_types WHERE org_id = 'org_default' AND api_name = 'Flight'`);
+
     const login = await server.app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'admin@example.com', password: 'admin' } });
     const cookie = cookieFrom(login.headers['set-cookie']);
 
