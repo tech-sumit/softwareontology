@@ -26,9 +26,9 @@ TRUNCATE object_created;
 
 -- an Action edited FL-204's status from base 'On time' to 'Delayed'
 INSERT INTO object_writeback (object_type, primary_key, property, value)
-VALUES ('Flight', 'FL-204', 'status', 'Delayed');
+VALUES ('SpikeFlight', 'FL-204', 'status', 'Delayed');
 
 -- an Action created a net-new flight not present in the base dataset
 INSERT INTO object_created (object_type, primary_key, payload)
-VALUES ('Flight', 'FL-900',
+VALUES ('SpikeFlight', 'FL-900',
   '{"flightNumber":"FL-900","status":"Scheduled","departureAt":"2026-05-29 14:00:00","seats":120}');

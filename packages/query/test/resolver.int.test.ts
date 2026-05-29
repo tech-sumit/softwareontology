@@ -24,7 +24,9 @@ const PG = process.env.DATABASE_URL ?? 'postgresql://so:so@localhost:5432/so';
 
 function flightMapping(path: string): ObjectTypeMapping {
   return {
-    objectType: 'Flight',
+    // 'SpikeFlight' (not 'Flight') so this spike fixture's seeded overlay rows
+    // don't collide with a real 'Flight' object type modeled by other modules/tests.
+    objectType: 'SpikeFlight',
     primaryKey: 'flightNumber',
     properties: [
       { name: 'flightNumber', column: 'flight_no', type: 'string' },
