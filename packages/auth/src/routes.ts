@@ -1,11 +1,9 @@
-import cookie from '@fastify/cookie';
 import type { FastifyPluginAsync } from 'fastify';
 import { createAuthService } from './service.js';
 
 export const SESSION_COOKIE = 'so_session';
 
 export const authRoutes: FastifyPluginAsync = async (fastify) => {
-  await fastify.register(cookie);
   const auth = createAuthService(fastify.ctx.db);
 
   fastify.post('/login', async (req, reply) => {
