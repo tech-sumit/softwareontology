@@ -3,6 +3,7 @@ import { openDuckDb } from '../src/duckdb.js';
 import { writeFlightsParquet } from './fixtures.js';
 import { resolveObjectSet } from '../src/resolver.js';
 import type { ObjectTypeMapping } from '../src/types.js';
+import { uploadFixtureToS3, TEST_S3 } from './fixtures.js';
 
 let parquetPath: string;
 beforeAll(async () => { parquetPath = await writeFlightsParquet(); });
@@ -61,5 +62,21 @@ describe('resolveObjectSet (local backing + overlay)', () => {
     });
     expect(rows[0]?.status).toBe('On time');
     expect(rows[0]?.seats).toBe(200);
+  });
+});
+
+describe('resolveObjectSet (S3 backing)', () => {
+  it('resolves from MinIO and still applies the overlay', async () => {
+    const s3Uri = await uploadFixtureToS3(parquetPath);
+    const mapping = flightMapping(parquetPath);
+    mapping.backing = { kind: 's3', path: s3Uri };
+
+    const rows = await resolveObjectSet({
+      mapping,
+      pgConnString: PG,
+      s3: TEST_S3,
+      options: { filters: [{ property: 'flightNumber', op: '=', value: 'FL-204' }] },
+    });
+    expect(rows[0]?.status).toBe('Delayed');
   });
 });
