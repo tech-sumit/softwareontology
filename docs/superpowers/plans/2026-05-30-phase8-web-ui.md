@@ -661,7 +661,7 @@ Expected: `apps/web/dist` produced with no errors.
 pnpm run infra:up && pnpm run infra:seed
 DATABASE_URL=postgresql://so:so@localhost:5432/so S3_ENDPOINT=localhost:9000 \
   S3_ACCESS_KEY_ID=minioadmin S3_SECRET_ACCESS_KEY=minioadmin S3_BUCKET=so-datasets \
-  node apps/web/dev-server.mjs
+  pnpm dev:api
 # terminal 2: UI
 pnpm dev:web   # open the printed localhost URL; sign in admin@example.com / admin
 ```
