@@ -33,8 +33,13 @@ export function createFakeContext(overrides: Partial<ModuleContext> = {}): Modul
     require(key) { throw new Error(`missing config: ${key}`); },
   };
 
+  const fakeDb: import('./types.js').Db = {
+    query: async () => [],
+    transaction: (fn) => fn(fakeDb),
+  };
+
   const base: ModuleContext = {
-    db: { query: async () => [] },
+    db: fakeDb,
     objectStore: { putObject: async () => {}, getObjectUrl: (k) => `mem://${k}` },
     query: { open: async () => { throw new Error('query engine unavailable in fake ctx'); } },
     registry, events, config, log,

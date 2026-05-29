@@ -39,3 +39,14 @@ describe('service factories', () => {
     }
   });
 });
+
+describe('db.transaction', () => {
+  it('commits successful work', async () => {
+    const rows = await db.transaction(async (tx) => tx.query<{ n: number }>('SELECT 7::int AS n'));
+    expect(rows[0]?.n).toBe(7);
+  });
+
+  it('rolls back and rethrows on error', async () => {
+    await expect(db.transaction(async () => { throw new Error('boom'); })).rejects.toThrow('boom');
+  });
+});

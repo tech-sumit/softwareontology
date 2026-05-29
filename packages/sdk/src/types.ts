@@ -24,6 +24,8 @@ export interface Config {
 /** Minimal infra interfaces — refined by the modules that own them in later plans. */
 export interface Db {
   query<R = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<R[]>;
+  /** Run fn inside a single-connection transaction (BEGIN/COMMIT, ROLLBACK on throw). */
+  transaction<T>(fn: (tx: Db) => Promise<T>): Promise<T>;
 }
 export interface ObjectStore {
   putObject(key: string, body: Uint8Array): Promise<void>;
