@@ -1,0 +1,26 @@
+{
+  "name": "softwareontology",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "packageManager": "pnpm@10.28.1",
+  "scripts": {
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "infra:up": "docker compose up -d --wait",
+    "infra:down": "docker compose down -v",
+    "infra:seed": "docker compose exec -T postgres psql -U so -d so -v ON_ERROR_STOP=1 < scripts/seed-overlay.sql"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0",
+    "eslint": "^9.18.0",
+    "@eslint/js": "^9.18.0",
+    "typescript-eslint": "^8.20.0",
+    "tsx": "^4.19.0"
+  }
+}
