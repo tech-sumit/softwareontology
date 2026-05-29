@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance, type FastifyPluginAsync, type FastifyError } from 'fastify';
 import cookie from '@fastify/cookie';
+import fastifyStatic from '@fastify/static';
 import type { ModuleDefinition, ModuleContext, Config, Logger } from '@so/sdk';
 import { createKernel, type Kernel } from '@so/kernel';
 import { createConfig } from './config.js';
@@ -52,6 +53,15 @@ export async function createServer(opts: {
   for (const m of opts.modules) {
     const routes = m.contributes?.apiRoutes as FastifyPluginAsync | undefined;
     if (routes) await app.register(routes, { prefix: `/api/${m.id}` });
+  }
+
+  const uiDist = config.get('UI_DIST');
+  if (uiDist) {
+    await app.register(fastifyStatic, { root: uiDist });
+    app.setNotFoundHandler((req, reply) => {
+      if (req.raw.url?.startsWith('/api')) return reply.code(404).send({ error: 'not found' });
+      return reply.sendFile('index.html'); // SPA fallback
+    });
   }
 
   app.setErrorHandler((err: FastifyError, _req, reply) => {
