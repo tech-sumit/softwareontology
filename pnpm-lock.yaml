@@ -103,6 +103,37 @@ importers:
         specifier: ^22.10.0
         version: 22.19.19
 
+  packages/ontology:
+    dependencies:
+      '@so/auth':
+        specifier: workspace:*
+        version: link:../auth
+      '@so/datasets':
+        specifier: workspace:*
+        version: link:../datasets
+      '@so/query':
+        specifier: workspace:*
+        version: link:../query
+      '@so/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      fastify:
+        specifier: ^5.2.0
+        version: 5.8.5
+    devDependencies:
+      '@so/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@so/server':
+        specifier: workspace:*
+        version: link:../server
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.19.19
+      '@types/pg':
+        specifier: ^8.11.0
+        version: 8.20.0
+
   packages/query:
     dependencies:
       duckdb-async:
