@@ -38,6 +38,9 @@ importers:
       '@so/sdk':
         specifier: workspace:*
         version: link:../sdk
+      fastify:
+        specifier: ^5.2.0
+        version: 5.8.5
     devDependencies:
       '@so/observability':
         specifier: workspace:*
