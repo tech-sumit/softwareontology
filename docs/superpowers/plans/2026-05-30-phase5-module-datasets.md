@@ -406,7 +406,6 @@ import { createServer, createConfig, type AppServer } from '@so/server';
 import { createLogger } from '@so/observability';
 import authModule from '@so/auth';
 import datasetsModule from '../src/index.js';
-import { SESSION_COOKIE } from '@so/auth';
 
 const config = createConfig({
   DATABASE_URL: process.env.DATABASE_URL ?? 'postgresql://so:so@localhost:5432/so',
