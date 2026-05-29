@@ -255,7 +255,7 @@ describe('createFakeContext', () => {
   it('provides a working in-memory event bus', () => {
     const ctx = createFakeContext();
     const seen: string[] = [];
-    ctx.events.on<string>('ping', (p) => seen.push(p));
+    ctx.events.on<string>('ping', (p) => { seen.push(p); });
     ctx.events.emit('ping', 'hello');
     expect(seen).toEqual(['hello']);
   });
@@ -381,6 +381,9 @@ git commit -m "feat(sdk): contract-test harness (createFakeContext, bootModuleFo
   },
   "dependencies": {
     "@so/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0"
   }
 }
 ```
@@ -410,7 +413,7 @@ describe('createEventBus', () => {
   it('delivers emitted events to subscribers', () => {
     const bus = createEventBus();
     const seen: number[] = [];
-    bus.on<number>('n', (p) => seen.push(p));
+    bus.on<number>('n', (p) => { seen.push(p); });
     bus.emit('n', 1);
     bus.emit('n', 2);
     expect(seen).toEqual([1, 2]);
@@ -419,7 +422,7 @@ describe('createEventBus', () => {
   it('unsubscribes via the returned function', () => {
     const bus = createEventBus();
     const seen: number[] = [];
-    const off = bus.on<number>('n', (p) => seen.push(p));
+    const off = bus.on<number>('n', (p) => { seen.push(p); });
     bus.emit('n', 1);
     off();
     bus.emit('n', 2);
