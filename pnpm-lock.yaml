@@ -30,6 +30,37 @@ importers:
         specifier: ^3.0.0
         version: 3.2.4(@types/node@22.19.19)(tsx@4.22.3)
 
+  packages/actions:
+    dependencies:
+      '@so/auth':
+        specifier: workspace:*
+        version: link:../auth
+      '@so/ontology':
+        specifier: workspace:*
+        version: link:../ontology
+      '@so/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      fastify:
+        specifier: ^5.2.0
+        version: 5.8.5
+    devDependencies:
+      '@so/datasets':
+        specifier: workspace:*
+        version: link:../datasets
+      '@so/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@so/server':
+        specifier: workspace:*
+        version: link:../server
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.19.19
+      '@types/pg':
+        specifier: ^8.11.0
+        version: 8.20.0
+
   packages/auth:
     dependencies:
       '@fastify/cookie':
