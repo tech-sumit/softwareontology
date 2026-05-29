@@ -1,0 +1,19 @@
+{
+  "name": "@so/datasets",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run" },
+  "dependencies": {
+    "@so/sdk": "workspace:*",
+    "@so/auth": "workspace:*",
+    "fastify": "^5.2.0"
+  },
+  "devDependencies": {
+    "@so/server": "workspace:*",
+    "@so/observability": "workspace:*",
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.11.0"
+  }
+}
