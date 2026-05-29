@@ -3,8 +3,9 @@ import { api, type User } from './api';
 import { LoginForm } from './components/LoginForm';
 import { SetupView } from './views/SetupView';
 import { ExplorerView } from './views/ExplorerView';
+import { AdminView } from './views/AdminView';
 
-type View = 'setup' | 'explorer';
+type View = 'setup' | 'explorer' | 'admin';
 
 export function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -29,10 +30,11 @@ export function App() {
       <div className="tabs">
         <div className={`tab ${view === 'explorer' ? 'active' : ''}`} onClick={() => setView('explorer')}>Explorer</div>
         <div className={`tab ${view === 'setup' ? 'active' : ''}`} onClick={() => setView('setup')}>Upload &amp; model</div>
+        <div className={`tab ${view === 'admin' ? 'active' : ''}`} onClick={() => setView('admin')}>Admin</div>
       </div>
       <div className="wrap">
-        {view === 'setup'
-          ? <SetupView onModeled={() => { setRefreshKey((k) => k + 1); setView('explorer'); }} />
+        {view === 'setup' ? <SetupView onModeled={() => { setRefreshKey((k) => k + 1); setView('explorer'); }} />
+          : view === 'admin' ? <AdminView />
           : <ExplorerView key={refreshKey} />}
       </div>
     </>

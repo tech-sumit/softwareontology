@@ -30,4 +30,6 @@ export const api = {
   listActions: () => req<{ actions: Array<{ apiName: string; objectType: string; kind: string }> }>('GET', '/actions/definitions'),
   createAction: (body: unknown) => req<{ ok: boolean }>('POST', '/actions/definitions', body),
   executeAction: (apiName: string, body: unknown) => req<{ ok: boolean }>('POST', `/actions/${apiName}/execute`, body),
+  listUsers: () => req<{ users: Array<{ id: string; email: string; roles: string[] }> }>('GET', '/admin/users'),
+  createUser: (email: string, password: string) => req<{ user: unknown }>('POST', '/admin/users', { email, password }),
 };
