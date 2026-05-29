@@ -27,6 +27,9 @@ services:
 
   createbuckets:
     image: minio/mc:latest
+    # 'init' profile keeps this one-shot out of `up --wait` (it exits, which would
+    # otherwise make --wait report failure). Run it explicitly via `compose run`.
+    profiles: ["init"]
     depends_on:
       minio:
         condition: service_healthy

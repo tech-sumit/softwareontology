@@ -88,7 +88,7 @@ packages:
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "infra:up": "docker compose up -d --wait",
+    "infra:up": "docker compose up -d --wait postgres minio && docker compose run --rm createbuckets",
     "infra:down": "docker compose down -v",
     "infra:seed": "docker compose exec -T postgres psql -U so -d so -v ON_ERROR_STOP=1 < scripts/seed-overlay.sql"
   },
@@ -213,6 +213,7 @@ services:
 
   createbuckets:
     image: minio/mc:latest
+    profiles: ["init"]   # one-shot; kept out of `up --wait`, run via `compose run`
     depends_on:
       minio:
         condition: service_healthy
