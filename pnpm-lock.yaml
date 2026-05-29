@@ -101,6 +101,9 @@ importers:
       '@aws-sdk/client-s3':
         specifier: ^3.700.0
         version: 3.1057.0
+      '@fastify/cookie':
+        specifier: ^11.0.2
+        version: 11.0.2
       '@so/kernel':
         specifier: workspace:*
         version: link:../kernel

@@ -1,4 +1,5 @@
 import Fastify, { type FastifyInstance, type FastifyPluginAsync, type FastifyError } from 'fastify';
+import cookie from '@fastify/cookie';
 import type { ModuleDefinition, ModuleContext, Config, Logger } from '@so/sdk';
 import { createKernel, type Kernel } from '@so/kernel';
 import { createConfig } from './config.js';
@@ -35,6 +36,7 @@ export async function createServer(opts: {
   });
 
   const app = Fastify({ logger: false });
+  await app.register(cookie);
   app.decorate('ctx', kernel.ctx);
 
   app.get('/healthz', async () => ({ status: 'ok' }));
