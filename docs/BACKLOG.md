@@ -23,10 +23,10 @@ Current: LLM gateway (echo/http) + ask-over-ontology. Remaining:
 
 ---
 
-## Building now (user: "build it")
-1. **Connectivity** — reuse Airflow provider Hooks via a Python `connector-runner` sidecar (not Airflow's scheduler).
-2. **Transformation/compute** — pipeline DAGs + scheduling + incremental; S3/REST connectors.
-3. **Ontology depth** — link traversal, interfaces (link traversal first).
-4. **Applications** — a low-code app builder (Workshop equivalent).
-7. **Governance/identity** — Keycloak (OIDC/SSO) with our RBAC on top.
-9. **Developer experience** — OpenAPI spec + generated typed client SDK.
+## Delivered (user: "build it") — all merged & tested ✅
+1. **Connectivity** — `@so/connectors-airflow` drives a Python `connector-runner` sidecar reusing Airflow provider Hooks (Plan 25). ✅
+2. **Transformation/compute** — pipeline multi-step DAGs (Plan 22) + S3/REST connectors `@so/connectors-cloud` (Plan 23). ✅ *(remaining: scheduling + incremental builds → backlog)*
+3. **Ontology depth** — link traversal / linked-object resolution (Plan 21). ✅ *(remaining: interfaces → backlog)*
+4. **Applications** — `@so/apps` backend (Plan 27) + builder/runtime UI (Plan 28). ✅ *(remaining: richer widgets, layout, action-param forms → backlog)*
+7. **Governance/identity** — OIDC/SSO in `@so/auth`, Keycloak-compatible, RBAC on top (Plan 26). ✅
+9. **Developer experience** — `@so/openapi` spec + generated `@so/client` typed SDK (Plan 24). ✅

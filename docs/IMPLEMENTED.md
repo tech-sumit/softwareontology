@@ -2,7 +2,7 @@
 
 An open-source, self-hostable **Palantir Foundry alternative** built around a semantic Ontology layer. Modular monolith, TypeScript end-to-end (Fastify · React · Postgres · S3-API object store / MinIO · in-process DuckDB), with a `@so/kernel` + `@so/sdk` module framework.
 
-**Status:** all four spec phases have their defining capability built, tested, and demoable. As of this writing: **19 plans merged, 67 unit/integration tests + a full E2E suite, 18 packages + the web app.** Run `pnpm test` to verify; `pnpm dev:api` + `pnpm dev:web` to demo (sign in `admin@example.com` / `admin`).
+**Status:** all four spec phases plus the prioritized Foundry-gap items (connectivity, compute, ontology depth, app builder, SSO, SDK) are built, tested, and demoable. As of this writing: **28 plans merged, 80 unit/integration + component tests + a full E2E suite, 24 packages + the web app.** Run `pnpm test` to verify; `pnpm dev:api` + `pnpm dev:web` to demo (sign in `admin@example.com` / `admin`).
 
 ---
 
@@ -21,10 +21,13 @@ Foundation: **`@so/kernel`**, **`@so/sdk`**, **`@so/query`** (DuckDB resolver), 
 
 | Module | Capability | Key endpoints (prefixed `/api/<id>`) | Perms |
 |---|---|---|---|
-| `auth` | users, sessions, RBAC, **property-level RLS** | `POST /auth/login`, `GET /auth/me`, `POST /auth/logout`; exports `requirePermission` guard | — |
+| `auth` | users, sessions, RBAC, **property-level RLS**, **OIDC/SSO** (Keycloak-compatible) | `POST /auth/login`, `GET /auth/me`, `POST /auth/logout`, `GET /auth/oidc/login`, `GET /auth/oidc/callback`; exports `requirePermission` guard | — |
 | `datasets` | CSV/Parquet upload → Parquet/MinIO + registry + preview | `POST /datasets?name=&format=`, `GET /datasets`, `GET /datasets/:id`, `GET /datasets/:id/preview` | `datasets:read/write` |
 | `connectors-db` | ingest an external Postgres table → dataset | `POST /connectors-db`, `GET /connectors-db`, `POST /connectors-db/:id/sync` | `connectors:read/write` |
-| `pipelines` | SQL transforms → derived datasets | `POST /pipelines`, `GET /pipelines`, `POST /pipelines/:id/run` | `pipelines:read/write` |
+| `connectors-cloud` | ingest from S3 objects / REST endpoints → dataset | `POST /connectors-cloud`, `GET /connectors-cloud`, `POST /connectors-cloud/:id/sync` | `connectors:read/write` |
+| `connectors-airflow` | reuse **Airflow provider Hooks** via a Python `connector-runner` sidecar → dataset | `POST /connectors-airflow`, `GET /connectors-airflow`, `POST /connectors-airflow/:id/sync` | `connectors:read/write` |
+| `pipelines` | SQL transforms + **multi-step DAGs** → derived datasets | `POST /pipelines`, `GET /pipelines`, `POST /pipelines/:id/run` | `pipelines:read/write` |
+| `apps` | **app builder** — store/validate widget-graph app definitions (Workshop-equivalent) | `POST/GET /apps`, `GET/PUT/DELETE /apps/:id` | `apps:read/write` |
 | `ontology` | Object Types, Properties, Links, **Functions**, resolution, RLS | `POST/GET /ontology/object-types`, `GET /ontology/object-types/:n`, `GET /ontology/object-types/:n/objects`, `POST /ontology/link-types`, `POST /ontology/object-types/:n/functions`, `POST /ontology/object-types/:n/properties/:p/security` | `ontology:read/edit` |
 | `actions` | validated **ACID write-back** + audit | `POST/GET /actions/definitions`, `POST /actions/:n/execute` | `actions:read/edit/execute` |
 | `automations` | event-driven follow-up actions (`action.executed`) | `POST/GET /automations` | `automations:read/write` |
@@ -34,11 +37,15 @@ Foundation: **`@so/kernel`**, **`@so/sdk`**, **`@so/query`** (DuckDB resolver), 
 | `aip` | LLM gateway + ask-over-ontology (echo/http providers) | `POST /aip/complete`, `POST /aip/ask` | `aip:use` |
 | `admin` | user & role/permission administration | `GET/POST /admin/users`, `GET/POST /admin/roles`, `GET /admin/permissions` | `admin:users/roles` |
 
+| `openapi` | serves a generated **OpenAPI 3.1 spec** of the platform API | `GET /openapi/spec` | — |
+
+Developer SDK: **`@so/client`** — a typed API client generated from the OpenAPI spec (`openapi-typescript` → `openapi-fetch`). Run `pnpm gen:client` to regenerate after API changes.
+
 Host endpoints: `GET /healthz`, `GET /readyz`, and the SPA at `/` (when `UI_DIST` set).
 
 ## Web app (`apps/web`)
 
-Vite + React. Tabs: **Login**, **Explorer** (object-type sidebar · resolved-objects table · detail + action buttons), **Upload & model**, **Admin** (users), **Dashboards** (group-by bar chart), **Ask** (AIP). API client with cookie auth. Pure components unit-tested under jsdom.
+Vite + React. Tabs: **Login**, **Explorer** (object-type sidebar · resolved-objects table · detail + action buttons), **Upload & model**, **Admin** (users), **Dashboards** (group-by bar chart), **Ask** (AIP), **Apps** (low-code builder: compose object-table / metric / action-button widgets → save → run against live data). API client with cookie auth. Pure components unit-tested under jsdom.
 
 ## Testing
 
@@ -48,6 +55,6 @@ Vite + React. Tabs: **Login**, **Explorer** (object-type sidebar · resolved-obj
 
 Run everything: `pnpm run infra:up && pnpm run infra:seed && pnpm typecheck && pnpm lint && pnpm test`.
 
-## Deferred (roadmap, not blockers)
+## Deferred (roadmap → see `docs/BACKLOG.md`)
 
-Dataset versioning/branches; S3/REST connectors; LLM **agents** that choose tools; real **vector** semantic search; app-builder/templates UI; Helm + air-gap install bundle; OpenTelemetry exporters; `@so/ui-shell` dynamic module-UI extraction; pushdown aggregation/RLS for very large sets.
+Dataset versioning/branches; LLM **agents** that choose tools + real **vector** semantic search (AIP depth, backlog #5); ML training/registry/inference (backlog #6); distributed compute + Helm/air-gap + HA/branching/OTel (scale & ops, backlog #8); app-builder richer widgets (charts/forms/layout) + action-parameter forms; `@so/ui-shell` dynamic module-UI extraction; pushdown aggregation/RLS for very large sets.
