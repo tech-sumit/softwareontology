@@ -543,6 +543,28 @@ importers:
         specifier: ^8.11.0
         version: 8.20.0
 
+  packages/openapi:
+    dependencies:
+      '@so/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      fastify:
+        specifier: ^5.2.0
+        version: 5.8.5
+    devDependencies:
+      '@so/auth':
+        specifier: workspace:*
+        version: link:../auth
+      '@so/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@so/server':
+        specifier: workspace:*
+        version: link:../server
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.19.19
+
   packages/pipelines:
     dependencies:
       '@so/auth':
