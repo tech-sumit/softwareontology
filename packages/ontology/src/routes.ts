@@ -78,4 +78,11 @@ export const ontologyRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: (e as Error).message });
     }
   });
+
+  fastify.get('/object-types/:apiName/objects/:pk/links/:linkApiName', { preHandler: requirePermission('ontology:read') }, async (req, reply) => {
+    const { apiName, pk, linkApiName } = req.params as { apiName: string; pk: string; linkApiName: string };
+    try {
+      return { objects: await svc.resolveLinkedObjects(req.user!.orgId, apiName, pk, linkApiName) };
+    } catch (e) { return reply.code(404).send({ error: (e as Error).message }); }
+  });
 };

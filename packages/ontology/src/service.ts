@@ -94,6 +94,30 @@ export function createOntologyService(ctx: ModuleContext) {
     );
   }
 
+  async function resolveLinkedObjects(orgId: string, fromType: string, fromPk: string, linkApiName: string): Promise<Record<string, unknown>[]> {
+    const fromOt = await getObjectType(orgId, fromType);
+    if (!fromOt) throw new Error(`object type not found: ${fromType}`);
+    const links = await ctx.db.query<{ to_object_type_id: string; foreign_key_property: string }>(
+      `SELECT to_object_type_id, foreign_key_property FROM link_types WHERE org_id = $1 AND from_object_type_id = $2 AND api_name = $3`,
+      [orgId, fromOt.id, linkApiName],
+    );
+    const link = links[0];
+    if (!link) throw new Error(`link not found: ${linkApiName}`);
+    const toRows = await ctx.db.query<{ api_name: string }>(`SELECT api_name FROM object_types WHERE id = $1`, [link.to_object_type_id]);
+    const toApiName = toRows[0]?.api_name;
+    if (!toApiName) throw new Error('target object type missing');
+    const toOt = await getObjectType(orgId, toApiName);
+    if (!toOt) throw new Error('target object type missing');
+
+    const fromObjs = await resolveObjects(orgId, fromType, { filters: [{ property: fromOt.primaryKey, op: '=', value: fromPk }] });
+    const fromObj = fromObjs[0];
+    if (!fromObj) return [];
+    const fkValue = fromObj[link.foreign_key_property];
+    if (fkValue === null || fkValue === undefined) return [];
+
+    return resolveObjects(orgId, toApiName, { filters: [{ property: toOt.primaryKey, op: '=', value: fkValue as string | number | boolean }] });
+  }
+
   async function createFunction(orgId: string, objectType: string, input: FunctionInput): Promise<void> {
     if (!NAME_RE.test(input.apiName)) throw new Error(`invalid function name: ${input.apiName}`);
     if (!VALID_TYPES.has(input.type)) throw new Error(`invalid type: ${input.type}`);
@@ -152,5 +176,5 @@ export function createOntologyService(ctx: ModuleContext) {
     });
   }
 
-  return { createObjectType, listObjectTypes, getObjectType, createLinkType, resolveObjects, createFunction, setPropertySecurity };
+  return { createObjectType, listObjectTypes, getObjectType, createLinkType, resolveObjects, createFunction, setPropertySecurity, resolveLinkedObjects };
 }
