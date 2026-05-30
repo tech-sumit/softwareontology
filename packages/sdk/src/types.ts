@@ -42,7 +42,7 @@ export interface QueryEngine {
 
 export type ContributionSlot =
   | 'objectTypes' | 'linkTypes' | 'actions' | 'functions'
-  | 'connectors' | 'jobs' | 'permissions';
+  | 'connectors' | 'jobs' | 'permissions' | 'schedules';
 
 export interface Registry {
   get<T = unknown>(slot: ContributionSlot): T[];
@@ -50,6 +50,7 @@ export interface Registry {
 
 export type JobHandler = (ctx: ModuleContext, payload: unknown) => Promise<void> | void;
 export interface JobDefinition { name: string; handler: JobHandler; }
+export interface ScheduleDefinition { name: string; cron: string; }
 
 export interface Contributions {
   objectTypes?: unknown[];   // typed by @so/ontology (Plan 6)
@@ -58,6 +59,7 @@ export interface Contributions {
   functions?: unknown[];
   connectors?: unknown[];    // typed by @so/datasets (Plan 5)
   jobs?: JobDefinition[];
+  schedules?: ScheduleDefinition[];
   permissions?: string[];
   apiRoutes?: unknown;       // Fastify plugin — typed by @so/server (Plan 3)
   ui?: unknown;              // React manifest — typed by @so/ui-shell (Plan 8)

@@ -23,7 +23,7 @@ export interface Kernel {
 }
 
 const ARRAY_SLOTS: ContributionSlot[] = [
-  'objectTypes', 'linkTypes', 'actions', 'functions', 'connectors', 'jobs', 'permissions',
+  'objectTypes', 'linkTypes', 'actions', 'functions', 'connectors', 'jobs', 'permissions', 'schedules',
 ];
 
 export function createKernel(opts: { modules: ModuleDefinition[]; services: KernelServices }): Kernel {

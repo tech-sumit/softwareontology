@@ -1,5 +1,5 @@
 import PgBoss from 'pg-boss';
-import type { ModuleDefinition, ModuleContext, Config, Logger, JobDefinition } from '@so/sdk';
+import type { ModuleDefinition, ModuleContext, Config, Logger, JobDefinition, ScheduleDefinition } from '@so/sdk';
 import { createKernel } from '@so/kernel';
 import { createDb, createObjectStore, createQueryEngine } from '@so/server';
 
@@ -45,6 +45,11 @@ export async function createWorker(opts: {
           for (const item of batch) await job.handler(ctx, item.data);
         });
         logger.info('job bound', { name: job.name });
+      }
+      const schedules = kernel.registry.get<ScheduleDefinition>('schedules');
+      for (const sched of schedules) {
+        await boss.schedule(sched.name, sched.cron);
+        logger.info('schedule bound', { name: sched.name, cron: sched.cron });
       }
     },
     async enqueue(name, data) {
