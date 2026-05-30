@@ -30,4 +30,18 @@ export const pipelineRoutes: FastifyPluginAsync = async (fastify) => {
     const r = await svc.getRun(req.user!.orgId, runId);
     return r ? reply.send(r) : reply.code(404).send({ error: 'run not found' });
   });
+
+  fastify.put('/:id/schedule', { preHandler: requirePermission('pipelines:write') }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const body = req.body as { cron?: string };
+    if (!body?.cron) return reply.code(400).send({ error: 'cron required' });
+    try { const ok = await svc.setSchedule(req.user!.orgId, id, body.cron); return ok ? reply.send({ ok: true }) : reply.code(404).send({ error: 'pipeline not found' }); }
+    catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
+  });
+
+  fastify.delete('/:id/schedule', { preHandler: requirePermission('pipelines:write') }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const ok = await svc.clearSchedule(req.user!.orgId, id);
+    return ok ? reply.send({ ok: true }) : reply.code(404).send({ error: 'pipeline not found' });
+  });
 };

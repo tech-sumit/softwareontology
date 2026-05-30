@@ -24,6 +24,8 @@ const MIGRATIONS = [
     finished_at timestamptz
   )`,
   `ALTER TABLE pipelines ADD COLUMN IF NOT EXISTS expectations jsonb`,
+  `ALTER TABLE pipelines ADD COLUMN IF NOT EXISTS schedule text`,
+  `ALTER TABLE pipelines ADD COLUMN IF NOT EXISTS last_run_at timestamptz`,
 ];
 
 export async function runMigrations(db: Db): Promise<void> {

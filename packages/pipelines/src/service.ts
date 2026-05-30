@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { CronExpressionParser } from 'cron-parser';
 import type { ModuleContext } from '@so/sdk';
 
 const NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -6,6 +7,10 @@ const NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 function guardSql(sql: string): void {
   if (sql.length > 2000) throw new Error('pipeline SQL too long');
   if (sql.includes(';') || sql.includes('--') || sql.includes('/*')) throw new Error('illegal characters in pipeline SQL');
+}
+
+function validateCron(cron: string): void {
+  try { CronExpressionParser.parse(cron); } catch { throw new Error('invalid cron expression'); }
 }
 
 const EXP_TYPES = ['row_count_min', 'row_count_max', 'not_null', 'unique'];
@@ -143,5 +148,15 @@ export function createPipelineService(ctx: ModuleContext) {
     return r ? { id: r.id, pipelineId: r.pipeline_id, status: r.status, trigger: r.trigger, datasetId: r.dataset_id, rowCount: r.row_count, error: r.error, startedAt: r.started_at, finishedAt: r.finished_at } : null;
   }
 
-  return { createPipeline, listPipelines, run, listRuns, getRun };
+  async function setSchedule(orgId: string, id: string, cron: string): Promise<boolean> {
+    validateCron(cron);
+    const r = await ctx.db.query<{ id: string }>(`UPDATE pipelines SET schedule = $1 WHERE org_id = $2 AND id = $3 RETURNING id`, [cron, orgId, id]);
+    return r.length > 0;
+  }
+  async function clearSchedule(orgId: string, id: string): Promise<boolean> {
+    const r = await ctx.db.query<{ id: string }>(`UPDATE pipelines SET schedule = NULL, last_run_at = NULL WHERE org_id = $1 AND id = $2 RETURNING id`, [orgId, id]);
+    return r.length > 0;
+  }
+
+  return { createPipeline, listPipelines, run, listRuns, getRun, setSchedule, clearSchedule };
 }
