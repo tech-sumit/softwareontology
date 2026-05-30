@@ -23,6 +23,7 @@ const MIGRATIONS = [
     started_at timestamptz NOT NULL DEFAULT now(),
     finished_at timestamptz
   )`,
+  `ALTER TABLE pipelines ADD COLUMN IF NOT EXISTS expectations jsonb`,
 ];
 
 export async function runMigrations(db: Db): Promise<void> {

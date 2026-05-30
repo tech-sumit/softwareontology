@@ -9,4 +9,4 @@ export default defineModule({
   async onInstall(ctx) { await runMigrations(ctx.db); },
 });
 
-export { createPipelineService, type PipelineInput, type PipelineStep } from './service.js';
+export { createPipelineService, type PipelineInput, type PipelineStep, type Expectation } from './service.js';

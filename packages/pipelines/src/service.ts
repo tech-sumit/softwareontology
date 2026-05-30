@@ -8,8 +8,28 @@ function guardSql(sql: string): void {
   if (sql.includes(';') || sql.includes('--') || sql.includes('/*')) throw new Error('illegal characters in pipeline SQL');
 }
 
+const EXP_TYPES = ['row_count_min', 'row_count_max', 'not_null', 'unique'];
+function validateExpectations(input: unknown): Expectation[] {
+  if (input === undefined || input === null) return [];
+  if (!Array.isArray(input)) throw new Error('expectations must be an array');
+  const out: Expectation[] = [];
+  for (const e of input) {
+    const exp = (e ?? {}) as { type?: string; value?: number; column?: string };
+    if (!EXP_TYPES.includes(exp.type as string)) throw new Error(`unknown expectation type: ${String(exp.type)}`);
+    if (exp.type === 'row_count_min' || exp.type === 'row_count_max') {
+      if (typeof exp.value !== 'number' || !Number.isFinite(exp.value)) throw new Error(`${exp.type} requires a numeric value`);
+      out.push({ type: exp.type, value: exp.value });
+    } else {
+      if (!exp.column || !NAME_RE.test(exp.column)) throw new Error(`${exp.type} requires a valid column name`);
+      out.push({ type: exp.type as Expectation['type'], column: exp.column });
+    }
+  }
+  return out;
+}
+
 export interface PipelineStep { name: string; sql: string; }
-export interface PipelineInput { name: string; inputs: string[]; sql?: string; steps?: PipelineStep[]; }
+export interface Expectation { type: 'row_count_min' | 'row_count_max' | 'not_null' | 'unique'; value?: number; column?: string; }
+export interface PipelineInput { name: string; inputs: string[]; sql?: string; steps?: PipelineStep[]; expectations?: Expectation[]; }
 
 export function createPipelineService(ctx: ModuleContext) {
   async function createPipeline(orgId: string, input: PipelineInput): Promise<string> {
@@ -23,10 +43,11 @@ export function createPipelineService(ctx: ModuleContext) {
       if (!input.sql) throw new Error('sql or steps required');
       guardSql(input.sql);
     }
+    const expectations = validateExpectations(input.expectations);
     const id = randomUUID();
     await ctx.db.query(
-      `INSERT INTO pipelines(id,org_id,name,sql,inputs,steps) VALUES ($1,$2,$3,$4,$5,$6)`,
-      [id, orgId, input.name, input.sql ?? '', JSON.stringify(input.inputs), hasSteps ? JSON.stringify(input.steps) : null],
+      `INSERT INTO pipelines(id,org_id,name,sql,inputs,steps,expectations) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      [id, orgId, input.name, input.sql ?? '', JSON.stringify(input.inputs), hasSteps ? JSON.stringify(input.steps) : null, expectations.length ? JSON.stringify(expectations) : null],
     );
     return id;
   }
@@ -39,8 +60,8 @@ export function createPipelineService(ctx: ModuleContext) {
   }
 
   async function run(orgId: string, pipelineId: string, trigger = 'manual'): Promise<{ datasetId: string; rowCount: number; runId: string }> {
-    const p = await ctx.db.query<{ name: string; sql: string; inputs: string[]; steps: PipelineStep[] | null }>(
-      `SELECT name, sql, inputs, steps FROM pipelines WHERE org_id = $1 AND id = $2`, [orgId, pipelineId],
+    const p = await ctx.db.query<{ name: string; sql: string; inputs: string[]; steps: PipelineStep[] | null; expectations: Expectation[] | null }>(
+      `SELECT name, sql, inputs, steps, expectations FROM pipelines WHERE org_id = $1 AND id = $2`, [orgId, pipelineId],
     );
     const pipe = p[0];
     if (!pipe) throw new Error('pipeline not found');
@@ -76,8 +97,20 @@ export function createPipelineService(ctx: ModuleContext) {
         }
         const described = await session.all(`DESCRIBE _out`);
         const counted = await session.all(`SELECT count(*)::int AS n FROM _out`);
-        await session.all(`COPY _out TO '${s3url}' (FORMAT parquet)`);
         const rowCount = Number(counted[0]?.n ?? 0);
+        for (const exp of pipe.expectations ?? []) {
+          if (exp.type === 'row_count_min' && rowCount < (exp.value ?? 0)) throw new Error(`expectation failed: row_count_min(${exp.value}) — got ${rowCount}`);
+          if (exp.type === 'row_count_max' && rowCount > (exp.value ?? 0)) throw new Error(`expectation failed: row_count_max(${exp.value}) — got ${rowCount}`);
+          if (exp.type === 'not_null') {
+            const r = await session.all(`SELECT count(*)::int AS n FROM _out WHERE ${exp.column} IS NULL`);
+            if (Number((r[0] as { n?: number })?.n ?? 0) > 0) throw new Error(`expectation failed: not_null(${exp.column})`);
+          }
+          if (exp.type === 'unique') {
+            const r = await session.all(`SELECT (count(*) - count(DISTINCT ${exp.column}))::int AS d FROM _out`);
+            if (Number((r[0] as { d?: number })?.d ?? 0) > 0) throw new Error(`expectation failed: unique(${exp.column})`);
+          }
+        }
+        await session.all(`COPY _out TO '${s3url}' (FORMAT parquet)`);
 
         await ctx.db.query(`INSERT INTO datasets(id,org_id,name,object_key,row_count) VALUES ($1,$2,$3,$4,$5)`, [datasetId, orgId, pipe.name, objectKey, rowCount]);
         for (let i = 0; i < described.length; i++) {
