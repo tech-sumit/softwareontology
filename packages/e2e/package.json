@@ -1,0 +1,12 @@
+{
+  "name": "@so/e2e", "version": "0.0.0", "private": true, "type": "module",
+  "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run" },
+  "devDependencies": {
+    "@so/server": "workspace:*", "@so/observability": "workspace:*",
+    "@so/auth": "workspace:*", "@so/datasets": "workspace:*", "@so/ontology": "workspace:*",
+    "@so/actions": "workspace:*", "@so/admin": "workspace:*", "@so/connectors-db": "workspace:*",
+    "@so/pipelines": "workspace:*", "@so/catalog": "workspace:*", "@so/lineage": "workspace:*",
+    "@so/dashboards": "workspace:*", "@so/aip": "workspace:*", "@so/automations": "workspace:*",
+    "@types/node": "^22.10.0", "@types/pg": "^8.11.0"
+  }
+}

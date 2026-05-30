@@ -376,6 +376,57 @@ importers:
         specifier: ^8.11.0
         version: 8.20.0
 
+  packages/e2e:
+    devDependencies:
+      '@so/actions':
+        specifier: workspace:*
+        version: link:../actions
+      '@so/admin':
+        specifier: workspace:*
+        version: link:../admin
+      '@so/aip':
+        specifier: workspace:*
+        version: link:../aip
+      '@so/auth':
+        specifier: workspace:*
+        version: link:../auth
+      '@so/automations':
+        specifier: workspace:*
+        version: link:../automations
+      '@so/catalog':
+        specifier: workspace:*
+        version: link:../catalog
+      '@so/connectors-db':
+        specifier: workspace:*
+        version: link:../connectors-db
+      '@so/dashboards':
+        specifier: workspace:*
+        version: link:../dashboards
+      '@so/datasets':
+        specifier: workspace:*
+        version: link:../datasets
+      '@so/lineage':
+        specifier: workspace:*
+        version: link:../lineage
+      '@so/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@so/ontology':
+        specifier: workspace:*
+        version: link:../ontology
+      '@so/pipelines':
+        specifier: workspace:*
+        version: link:../pipelines
+      '@so/server':
+        specifier: workspace:*
+        version: link:../server
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.19.19
+      '@types/pg':
+        specifier: ^8.11.0
+        version: 8.20.0
+
   packages/kernel:
     dependencies:
       '@so/sdk':
