@@ -10,4 +10,5 @@ export async function runMigrations(db: Db): Promise<void> {
     created_at timestamptz NOT NULL DEFAULT now(),
     UNIQUE (org_id, name)
   )`);
+  await db.query(`ALTER TABLE pipelines ADD COLUMN IF NOT EXISTS steps jsonb`);
 }
