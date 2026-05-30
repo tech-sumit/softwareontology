@@ -1,0 +1,5 @@
+fastapi>=0.110
+uvicorn>=0.29
+pandas>=2.0
+apache-airflow>=2.9
+apache-airflow-providers-postgres>=5.10
