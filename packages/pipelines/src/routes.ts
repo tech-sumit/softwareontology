@@ -19,4 +19,15 @@ export const pipelineRoutes: FastifyPluginAsync = async (fastify) => {
     try { return reply.code(200).send(await svc.run(req.user!.orgId, id)); }
     catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
   });
+
+  fastify.get('/:id/runs', { preHandler: requirePermission('pipelines:read') }, async (req) => {
+    const { id } = req.params as { id: string };
+    return { runs: await svc.listRuns(req.user!.orgId, id) };
+  });
+
+  fastify.get('/runs/:runId', { preHandler: requirePermission('pipelines:read') }, async (req, reply) => {
+    const { runId } = req.params as { runId: string };
+    const r = await svc.getRun(req.user!.orgId, runId);
+    return r ? reply.send(r) : reply.code(404).send({ error: 'run not found' });
+  });
 };

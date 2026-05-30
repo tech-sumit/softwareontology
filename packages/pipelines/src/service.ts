@@ -38,55 +38,77 @@ export function createPipelineService(ctx: ModuleContext) {
     return rows.map((r) => ({ id: r.id, name: r.name, inputs: r.inputs }));
   }
 
-  async function run(orgId: string, pipelineId: string): Promise<{ datasetId: string; rowCount: number }> {
+  async function run(orgId: string, pipelineId: string, trigger = 'manual'): Promise<{ datasetId: string; rowCount: number; runId: string }> {
     const p = await ctx.db.query<{ name: string; sql: string; inputs: string[]; steps: PipelineStep[] | null }>(
       `SELECT name, sql, inputs, steps FROM pipelines WHERE org_id = $1 AND id = $2`, [orgId, pipelineId],
     );
     const pipe = p[0];
     if (!pipe) throw new Error('pipeline not found');
 
-    const datasetId = randomUUID();
-    const objectKey = `${orgId}/datasets/${datasetId}/data.parquet`;
-    const s3url = ctx.objectStore.getObjectUrl(objectKey);
-    const session = await ctx.query.open();
+    const runId = randomUUID();
+    await ctx.db.query(`INSERT INTO pipeline_runs(id,pipeline_id,org_id,status,trigger) VALUES ($1,$2,$3,'running',$4)`, [runId, pipelineId, orgId, trigger]);
     try {
-      // create a DuckDB view per input dataset (latest with that name)
-      for (const inputName of pipe.inputs) {
-        if (!NAME_RE.test(inputName)) throw new Error(`invalid input name: ${inputName}`);
-        const ds = await ctx.db.query<{ object_key: string }>(
-          `SELECT object_key FROM datasets WHERE org_id = $1 AND name = $2 ORDER BY created_at DESC LIMIT 1`,
-          [orgId, inputName],
-        );
-        if (!ds[0]) throw new Error(`input dataset not found: ${inputName}`);
-        const url = ctx.objectStore.getObjectUrl(ds[0].object_key);
-        await session.all(`CREATE OR REPLACE VIEW ${inputName} AS SELECT * FROM read_parquet('${url}')`);
-      }
-      if (pipe.steps && pipe.steps.length > 0) {
-        for (const step of pipe.steps) {
-          if (!NAME_RE.test(step.name)) throw new Error(`invalid step name: ${step.name}`);
-          guardSql(step.sql);
-          await session.all(`CREATE OR REPLACE VIEW ${step.name} AS ${step.sql}`);
+      const datasetId = randomUUID();
+      const objectKey = `${orgId}/datasets/${datasetId}/data.parquet`;
+      const s3url = ctx.objectStore.getObjectUrl(objectKey);
+      const session = await ctx.query.open();
+      try {
+        for (const inputName of pipe.inputs) {
+          if (!NAME_RE.test(inputName)) throw new Error(`invalid input name: ${inputName}`);
+          const ds = await ctx.db.query<{ object_key: string }>(
+            `SELECT object_key FROM datasets WHERE org_id = $1 AND name = $2 ORDER BY created_at DESC LIMIT 1`,
+            [orgId, inputName],
+          );
+          if (!ds[0]) throw new Error(`input dataset not found: ${inputName}`);
+          const url = ctx.objectStore.getObjectUrl(ds[0].object_key);
+          await session.all(`CREATE OR REPLACE VIEW ${inputName} AS SELECT * FROM read_parquet('${url}')`);
         }
-        await session.all(`CREATE TEMP TABLE _out AS SELECT * FROM ${pipe.steps[pipe.steps.length - 1]!.name}`);
-      } else {
-        guardSql(pipe.sql);
-        await session.all(`CREATE TEMP TABLE _out AS ${pipe.sql}`);
-      }
-      const described = await session.all(`DESCRIBE _out`);
-      const counted = await session.all(`SELECT count(*)::int AS n FROM _out`);
-      await session.all(`COPY _out TO '${s3url}' (FORMAT parquet)`);
-      const rowCount = Number(counted[0]?.n ?? 0);
+        if (pipe.steps && pipe.steps.length > 0) {
+          for (const step of pipe.steps) {
+            if (!NAME_RE.test(step.name)) throw new Error(`invalid step name: ${step.name}`);
+            guardSql(step.sql);
+            await session.all(`CREATE OR REPLACE VIEW ${step.name} AS ${step.sql}`);
+          }
+          await session.all(`CREATE TEMP TABLE _out AS SELECT * FROM ${pipe.steps[pipe.steps.length - 1]!.name}`);
+        } else {
+          guardSql(pipe.sql);
+          await session.all(`CREATE TEMP TABLE _out AS ${pipe.sql}`);
+        }
+        const described = await session.all(`DESCRIBE _out`);
+        const counted = await session.all(`SELECT count(*)::int AS n FROM _out`);
+        await session.all(`COPY _out TO '${s3url}' (FORMAT parquet)`);
+        const rowCount = Number(counted[0]?.n ?? 0);
 
-      await ctx.db.query(`INSERT INTO datasets(id,org_id,name,object_key,row_count) VALUES ($1,$2,$3,$4,$5)`, [datasetId, orgId, pipe.name, objectKey, rowCount]);
-      for (let i = 0; i < described.length; i++) {
-        const col = described[i]!;
-        await ctx.db.query(`INSERT INTO dataset_columns(dataset_id,ordinal,name,duck_type) VALUES ($1,$2,$3,$4)`, [datasetId, i, String(col.column_name), String(col.column_type)]);
+        await ctx.db.query(`INSERT INTO datasets(id,org_id,name,object_key,row_count) VALUES ($1,$2,$3,$4,$5)`, [datasetId, orgId, pipe.name, objectKey, rowCount]);
+        for (let i = 0; i < described.length; i++) {
+          const col = described[i]!;
+          await ctx.db.query(`INSERT INTO dataset_columns(dataset_id,ordinal,name,duck_type) VALUES ($1,$2,$3,$4)`, [datasetId, i, String(col.column_name), String(col.column_type)]);
+        }
+        await ctx.db.query(`UPDATE pipeline_runs SET status='success', dataset_id=$1, row_count=$2, finished_at=now() WHERE id=$3`, [datasetId, rowCount, runId]);
+        return { datasetId, rowCount, runId };
+      } finally {
+        await session.close();
       }
-      return { datasetId, rowCount };
-    } finally {
-      await session.close();
+    } catch (e) {
+      await ctx.db.query(`UPDATE pipeline_runs SET status='failed', error=$1, finished_at=now() WHERE id=$2`, [(e as Error).message, runId]);
+      throw e;
     }
   }
 
-  return { createPipeline, listPipelines, run };
+  async function listRuns(orgId: string, pipelineId: string): Promise<Array<{ id: string; status: string; trigger: string; datasetId: string | null; rowCount: number | null; error: string | null; startedAt: string; finishedAt: string | null }>> {
+    const rows = await ctx.db.query<{ id: string; status: string; trigger: string; dataset_id: string | null; row_count: number | null; error: string | null; started_at: string; finished_at: string | null }>(
+      `SELECT id, status, trigger, dataset_id, row_count, error, started_at, finished_at FROM pipeline_runs WHERE org_id = $1 AND pipeline_id = $2 ORDER BY started_at DESC LIMIT 50`, [orgId, pipelineId],
+    );
+    return rows.map((r) => ({ id: r.id, status: r.status, trigger: r.trigger, datasetId: r.dataset_id, rowCount: r.row_count, error: r.error, startedAt: r.started_at, finishedAt: r.finished_at }));
+  }
+
+  async function getRun(orgId: string, runId: string): Promise<{ id: string; pipelineId: string; status: string; trigger: string; datasetId: string | null; rowCount: number | null; error: string | null; startedAt: string; finishedAt: string | null } | null> {
+    const rows = await ctx.db.query<{ id: string; pipeline_id: string; status: string; trigger: string; dataset_id: string | null; row_count: number | null; error: string | null; started_at: string; finished_at: string | null }>(
+      `SELECT id, pipeline_id, status, trigger, dataset_id, row_count, error, started_at, finished_at FROM pipeline_runs WHERE org_id = $1 AND id = $2`, [orgId, runId],
+    );
+    const r = rows[0];
+    return r ? { id: r.id, pipelineId: r.pipeline_id, status: r.status, trigger: r.trigger, datasetId: r.dataset_id, rowCount: r.row_count, error: r.error, startedAt: r.started_at, finishedAt: r.finished_at } : null;
+  }
+
+  return { createPipeline, listPipelines, run, listRuns, getRun };
 }
