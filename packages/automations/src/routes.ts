@@ -1,0 +1,14 @@
+import type { FastifyPluginAsync } from 'fastify';
+import { requirePermission } from '@so/auth';
+import { createAutomationService, type AutomationInput } from './service.js';
+
+export const automationRoutes: FastifyPluginAsync = async (fastify) => {
+  const svc = createAutomationService(fastify.ctx);
+  fastify.post('/', { preHandler: requirePermission('automations:write') }, async (req, reply) => {
+    const body = req.body as Partial<AutomationInput>;
+    if (!body?.name || !body?.triggerAction || !body?.thenAction) return reply.code(400).send({ error: 'name, triggerAction, thenAction required' });
+    try { const id = await svc.createAutomation(req.user!.orgId, { name: body.name, triggerAction: body.triggerAction, thenAction: body.thenAction, thenEdits: body.thenEdits ?? {} }); return reply.code(201).send({ id }); }
+    catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
+  });
+  fastify.get('/', { preHandler: requirePermission('automations:read') }, async (req) => ({ automations: await svc.listAutomations(req.user!.orgId) }));
+};
