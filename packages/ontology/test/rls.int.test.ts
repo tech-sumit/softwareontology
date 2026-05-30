@@ -27,6 +27,7 @@ describe('property-level RLS: secured property is masked for users without the p
     await db.query(`DELETE FROM object_properties WHERE object_type_id IN (SELECT id FROM object_types WHERE org_id='org_default' AND api_name=$1)`, [OT]);
     await db.query(`DELETE FROM object_types WHERE org_id='org_default' AND api_name=$1`, [OT]);
     await db.query(`DELETE FROM user_roles WHERE user_id IN (SELECT id FROM users WHERE email='limited@example.com')`);
+    await db.query(`DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE email='limited@example.com')`);
     await db.query(`DELETE FROM users WHERE email='limited@example.com'`);
     await db.query(`DELETE FROM role_permissions WHERE role_id IN (SELECT id FROM roles WHERE name='limitedrole')`);
     await db.query(`DELETE FROM roles WHERE name='limitedrole'`);
