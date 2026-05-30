@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { requirePermission } from '@so/auth';
+import { requirePermission, hasPermission } from '@so/auth';
 import { createOntologyService, type ObjectTypeInput } from './service.js';
 
 export const ontologyRoutes: FastifyPluginAsync = async (fastify) => {
@@ -33,11 +33,13 @@ export const ontologyRoutes: FastifyPluginAsync = async (fastify) => {
     const { apiName } = req.params as { apiName: string };
     const q = req.query as { limit?: string; offset?: string };
     try {
-      const objects = await svc.resolveObjects(req.user!.orgId, apiName, {
-        limit: Number(q.limit ?? 100),
-        offset: Number(q.offset ?? 0),
-      });
-      return { objects };
+      const ot = await svc.getObjectType(req.user!.orgId, apiName);
+      if (!ot) return reply.code(404).send({ error: 'not found' });
+      const perms = req.user!.permissions;
+      const masked = ot.properties.filter((p) => p.requiredPermission && !hasPermission(perms, p.requiredPermission)).map((p) => p.apiName);
+      const objects = await svc.resolveObjects(req.user!.orgId, apiName, { limit: Number(q.limit ?? 100), offset: Number(q.offset ?? 0) });
+      const result = masked.length === 0 ? objects : objects.map((o) => { for (const m of masked) delete o[m]; return o; });
+      return { objects: result };
     } catch (e) {
       return reply.code(404).send({ error: (e as Error).message });
     }
@@ -52,6 +54,15 @@ export const ontologyRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       await svc.createFunction(req.user!.orgId, apiName, { apiName: body.apiName, expression: body.expression, type: body.type as never });
       return reply.code(201).send({ ok: true });
+    } catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
+  });
+
+  fastify.post('/object-types/:apiName/properties/:propName/security', { preHandler: requirePermission('ontology:edit') }, async (req, reply) => {
+    const { apiName, propName } = req.params as { apiName: string; propName: string };
+    const body = req.body as { requiredPermission?: string | null };
+    try {
+      await svc.setPropertySecurity(req.user!.orgId, apiName, propName, body?.requiredPermission ?? null);
+      return reply.code(200).send({ ok: true });
     } catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
   });
 

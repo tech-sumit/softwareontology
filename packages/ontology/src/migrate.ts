@@ -58,6 +58,7 @@ const MIGRATIONS = [
      created_at timestamptz NOT NULL DEFAULT now(),
      PRIMARY KEY (org_id, object_type, primary_key)
    )`,
+  `ALTER TABLE object_properties ADD COLUMN IF NOT EXISTS required_permission text`,
 ];
 
 export async function runMigrations(db: Db): Promise<void> {

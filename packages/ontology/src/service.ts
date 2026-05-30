@@ -6,7 +6,7 @@ import { createDatasetService } from '@so/datasets';
 const NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const VALID_TYPES: ReadonlySet<string> = new Set(['string', 'int', 'float', 'bool', 'timestamp']);
 
-export interface PropertyInput { apiName: string; column: string; type: PropType; }
+export interface PropertyInput { apiName: string; column: string; type: PropType; requiredPermission?: string | null; }
 export interface ObjectTypeInput { apiName: string; datasetId: string; primaryKey: string; properties: PropertyInput[]; }
 export interface ObjectTypeSummary { apiName: string; datasetId: string; primaryKey: string; }
 export interface ObjectTypeDetail extends ObjectTypeSummary { id: string; objectKey: string; properties: PropertyInput[]; functions: FunctionInput[]; }
@@ -62,8 +62,8 @@ export function createOntologyService(ctx: ModuleContext) {
     );
     const r = rows[0];
     if (!r) return null;
-    const props = await ctx.db.query<{ api_name: string; column_name: string; prop_type: string }>(
-      `SELECT api_name, column_name, prop_type FROM object_properties WHERE object_type_id = $1 ORDER BY ordinal`,
+    const props = await ctx.db.query<{ api_name: string; column_name: string; prop_type: string; required_permission: string | null }>(
+      `SELECT api_name, column_name, prop_type, required_permission FROM object_properties WHERE object_type_id = $1 ORDER BY ordinal`,
       [r.id],
     );
     const fns = await ctx.db.query<{ api_name: string; expression: string; prop_type: string }>(
@@ -74,7 +74,7 @@ export function createOntologyService(ctx: ModuleContext) {
     if (!ds) throw new Error(`backing dataset missing for object type ${apiName}`);
     return {
       id: r.id, apiName, datasetId: r.dataset_id, primaryKey: r.primary_key, objectKey: ds.objectKey,
-      properties: props.map((p) => ({ apiName: p.api_name, column: p.column_name, type: p.prop_type as PropType })),
+      properties: props.map((p) => ({ apiName: p.api_name, column: p.column_name, type: p.prop_type as PropType, requiredPermission: p.required_permission })),
       functions: fns.map((f) => ({ apiName: f.api_name, expression: f.expression, type: f.prop_type as PropType })),
     };
   }
@@ -103,6 +103,16 @@ export function createOntologyService(ctx: ModuleContext) {
     await ctx.db.query(
       `INSERT INTO object_functions(object_type_id,ordinal,api_name,expression,prop_type) VALUES ($1,$2,$3,$4,$5)`,
       [ot.id, ordinal, input.apiName, input.expression, input.type],
+    );
+  }
+
+  async function setPropertySecurity(orgId: string, objectType: string, propertyApiName: string, requiredPermission: string | null): Promise<void> {
+    const ot = await getObjectType(orgId, objectType);
+    if (!ot) throw new Error(`object type not found: ${objectType}`);
+    if (!ot.properties.some((p) => p.apiName === propertyApiName)) throw new Error(`property not found: ${propertyApiName}`);
+    await ctx.db.query(
+      `UPDATE object_properties SET required_permission = $1 WHERE object_type_id = $2 AND api_name = $3`,
+      [requiredPermission, ot.id, propertyApiName],
     );
   }
 
@@ -142,5 +152,5 @@ export function createOntologyService(ctx: ModuleContext) {
     });
   }
 
-  return { createObjectType, listObjectTypes, getObjectType, createLinkType, resolveObjects, createFunction };
+  return { createObjectType, listObjectTypes, getObjectType, createLinkType, resolveObjects, createFunction, setPropertySecurity };
 }
