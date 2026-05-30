@@ -15,6 +15,7 @@ export default defineModule({
 });
 
 export { createAuthService, hasPermission, type AuthUser } from './service.js';
+export { createOidcService } from './oidc.js';
 export { hashPassword, verifyPassword } from './password.js';
 export { SESSION_COOKIE } from './routes.js';
 export { requirePermission } from './guard.js';
