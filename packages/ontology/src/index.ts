@@ -14,4 +14,4 @@ export default defineModule({
   },
 });
 
-export { createOntologyService, type ObjectTypeInput, type ObjectTypeDetail } from './service.js';
+export { createOntologyService, type ObjectTypeInput, type ObjectTypeDetail, type FunctionInput } from './service.js';

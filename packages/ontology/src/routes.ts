@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { requirePermission } from '@so/auth';
-import { createOntologyService, type ObjectTypeInput } from './service.js';
+import { createOntologyService, type ObjectTypeInput, type FunctionInput } from './service.js';
 
 export const ontologyRoutes: FastifyPluginAsync = async (fastify) => {
   const svc = createOntologyService(fastify.ctx);
@@ -41,6 +41,18 @@ export const ontologyRoutes: FastifyPluginAsync = async (fastify) => {
     } catch (e) {
       return reply.code(404).send({ error: (e as Error).message });
     }
+  });
+
+  fastify.post('/object-types/:apiName/functions', { preHandler: requirePermission('ontology:edit') }, async (req, reply) => {
+    const { apiName } = req.params as { apiName: string };
+    const body = req.body as { apiName?: string; expression?: string; type?: string };
+    if (!body?.apiName || !body?.expression || !body?.type) {
+      return reply.code(400).send({ error: 'apiName, expression, type required' });
+    }
+    try {
+      await svc.createFunction(req.user!.orgId, apiName, { apiName: body.apiName, expression: body.expression, type: body.type as never });
+      return reply.code(201).send({ ok: true });
+    } catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
   });
 
   fastify.post('/link-types', { preHandler: requirePermission('ontology:edit') }, async (req, reply) => {

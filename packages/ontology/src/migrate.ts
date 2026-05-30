@@ -27,6 +27,14 @@ const MIGRATIONS = [
      foreign_key_property text NOT NULL,
      UNIQUE (org_id, api_name)
    )`,
+  `CREATE TABLE IF NOT EXISTS object_functions (
+     object_type_id text NOT NULL REFERENCES object_types(id),
+     ordinal int NOT NULL,
+     api_name text NOT NULL,
+     expression text NOT NULL,
+     prop_type text NOT NULL,
+     PRIMARY KEY (object_type_id, ordinal)
+   )`,
   // Write-back overlay — the resolution contract. Resolver (@so/query) reads these;
   // the actions module (Plan 7) writes them. Created here so resolution works with
   // an empty overlay even before actions exist.

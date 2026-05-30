@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { ModuleContext } from '@so/sdk';
-import { resolveObjectSet, type ObjectTypeMapping, type PropType, type Filter } from '@so/query';
+import { resolveObjectSet, type ObjectTypeMapping, type PropType, type Filter, type FunctionDef } from '@so/query';
 import { createDatasetService } from '@so/datasets';
 
 const NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -9,7 +9,8 @@ const VALID_TYPES: ReadonlySet<string> = new Set(['string', 'int', 'float', 'boo
 export interface PropertyInput { apiName: string; column: string; type: PropType; }
 export interface ObjectTypeInput { apiName: string; datasetId: string; primaryKey: string; properties: PropertyInput[]; }
 export interface ObjectTypeSummary { apiName: string; datasetId: string; primaryKey: string; }
-export interface ObjectTypeDetail extends ObjectTypeSummary { id: string; objectKey: string; properties: PropertyInput[]; }
+export interface ObjectTypeDetail extends ObjectTypeSummary { id: string; objectKey: string; properties: PropertyInput[]; functions: FunctionInput[]; }
+export interface FunctionInput { apiName: string; expression: string; type: PropType; }
 
 export function createOntologyService(ctx: ModuleContext) {
   const datasets = createDatasetService(ctx);
@@ -65,11 +66,16 @@ export function createOntologyService(ctx: ModuleContext) {
       `SELECT api_name, column_name, prop_type FROM object_properties WHERE object_type_id = $1 ORDER BY ordinal`,
       [r.id],
     );
+    const fns = await ctx.db.query<{ api_name: string; expression: string; prop_type: string }>(
+      `SELECT api_name, expression, prop_type FROM object_functions WHERE object_type_id = $1 ORDER BY ordinal`,
+      [r.id],
+    );
     const ds = await datasets.get(orgId, r.dataset_id);
     if (!ds) throw new Error(`backing dataset missing for object type ${apiName}`);
     return {
       id: r.id, apiName, datasetId: r.dataset_id, primaryKey: r.primary_key, objectKey: ds.objectKey,
       properties: props.map((p) => ({ apiName: p.api_name, column: p.column_name, type: p.prop_type as PropType })),
+      functions: fns.map((f) => ({ apiName: f.api_name, expression: f.expression, type: f.prop_type as PropType })),
     };
   }
 
@@ -88,6 +94,18 @@ export function createOntologyService(ctx: ModuleContext) {
     );
   }
 
+  async function createFunction(orgId: string, objectType: string, input: FunctionInput): Promise<void> {
+    if (!NAME_RE.test(input.apiName)) throw new Error(`invalid function name: ${input.apiName}`);
+    if (!VALID_TYPES.has(input.type)) throw new Error(`invalid type: ${input.type}`);
+    const ot = await getObjectType(orgId, objectType);
+    if (!ot) throw new Error(`object type not found: ${objectType}`);
+    const ordinal = ot.functions.length;
+    await ctx.db.query(
+      `INSERT INTO object_functions(object_type_id,ordinal,api_name,expression,prop_type) VALUES ($1,$2,$3,$4,$5)`,
+      [ot.id, ordinal, input.apiName, input.expression, input.type],
+    );
+  }
+
   async function resolveObjects(
     orgId: string,
     apiName: string,
@@ -99,6 +117,7 @@ export function createOntologyService(ctx: ModuleContext) {
       objectType: ot.apiName,
       primaryKey: ot.primaryKey,
       properties: ot.properties.map((p) => ({ name: p.apiName, column: p.column, type: p.type })),
+      functions: ot.functions.map((f) => ({ name: f.apiName, expression: f.expression, type: f.type })),
       backing: { kind: 's3', path: ctx.objectStore.getObjectUrl(ot.objectKey) },
     };
     const rows = await resolveObjectSet({
@@ -123,5 +142,5 @@ export function createOntologyService(ctx: ModuleContext) {
     });
   }
 
-  return { createObjectType, listObjectTypes, getObjectType, createLinkType, resolveObjects };
+  return { createObjectType, listObjectTypes, getObjectType, createLinkType, resolveObjects, createFunction };
 }
