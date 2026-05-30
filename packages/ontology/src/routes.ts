@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { requirePermission } from '@so/auth';
-import { createOntologyService, type ObjectTypeInput, type FunctionInput } from './service.js';
+import { createOntologyService, type ObjectTypeInput } from './service.js';
 
 export const ontologyRoutes: FastifyPluginAsync = async (fastify) => {
   const svc = createOntologyService(fastify.ctx);

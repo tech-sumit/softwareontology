@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { ModuleContext } from '@so/sdk';
-import { resolveObjectSet, type ObjectTypeMapping, type PropType, type Filter, type FunctionDef } from '@so/query';
+import { resolveObjectSet, type ObjectTypeMapping, type PropType, type Filter } from '@so/query';
 import { createDatasetService } from '@so/datasets';
 
 const NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
