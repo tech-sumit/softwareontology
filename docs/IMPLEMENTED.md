@@ -2,14 +2,14 @@
 
 An open-source, self-hostable **Palantir Foundry alternative** built around a semantic Ontology layer. Modular monolith, TypeScript end-to-end (Fastify · React · Postgres · S3-API object store / MinIO · in-process DuckDB), with a `@so/kernel` + `@so/sdk` module framework.
 
-**Status:** all four spec phases plus the prioritized Foundry-gap items (connectivity, compute, ontology depth, app builder, SSO, SDK) are built, tested, and demoable. As of this writing: **28 plans merged, 80 unit/integration + component tests + a full E2E suite, 24 packages + the web app.** Run `pnpm test` to verify; `pnpm dev:api` + `pnpm dev:web` to demo (sign in `admin@example.com` / `admin`).
+**Status:** all four spec phases plus the prioritized Foundry-gap items (connectivity, compute, ontology depth, app builder, SSO, SDK) and **production-grade pipelines** (build health, data-quality gates, scheduling) are built, tested, and demoable. As of this writing: **31 plans merged, 88 unit/integration + component tests + a full E2E suite, 24 packages + the web app.** Run `pnpm test` to verify; `pnpm dev:api` + `pnpm dev:web` to demo (sign in `admin@example.com` / `admin`); `docker compose up -d --build` for the full container stack.
 
 ---
 
 ## Architecture
 
 - **Kernel + modules.** `@so/kernel` loads modules in dependency order, owns the service container (`ctx`: `db`, `objectStore`, `query`, `registry`, `events`, `config`, `log`), exposes extension-point registries, and runs `onInstall`/`onStart`/`onStop`. Every capability is a module defined with `@so/sdk`'s `defineModule`.
-- **Host.** `@so/server` (Fastify) builds the real `ctx` services, mounts each module's `apiRoutes` under `/api/<moduleId>`, serves `/healthz` + `/readyz`, parses cookies, BigInt-safe JSON, and serves the built UI (`UI_DIST`). `@so/worker` runs jobs on pg-boss. `@so/observability` provides pino logging.
+- **Host.** `@so/server` (Fastify) builds the real `ctx` services, mounts each module's `apiRoutes` under `/api/<moduleId>`, serves `/healthz` + `/readyz`, parses cookies, BigInt-safe JSON, and serves the built UI (`UI_DIST`). `@so/worker` runs jobs **and cron `schedules`** on pg-boss (it drives pipeline scheduling via a per-minute `pipeline.tick`). `@so/observability` provides pino logging.
 - **Resolution model (the core).** Source datasets are immutable Parquet in object storage. Object resolution merges the base Parquet (via DuckDB) with a Postgres **write-back overlay** (`object_writeback` edits + `object_created` new objects), so Actions' edits override base values. Computed Functions add columns over the resolved set.
 - **Production-grade.** Org-scoped (`org_id` everywhere, multi-tenancy-ready), ACID write-back (`Db.transaction`), RBAC + property-level masking, parameterized SQL, structured logging, health probes, idempotent migrations, strict TypeScript, CI.
 
@@ -26,7 +26,7 @@ Foundation: **`@so/kernel`**, **`@so/sdk`**, **`@so/query`** (DuckDB resolver), 
 | `connectors-db` | ingest an external Postgres table → dataset | `POST /connectors-db`, `GET /connectors-db`, `POST /connectors-db/:id/sync` | `connectors:read/write` |
 | `connectors-cloud` | ingest from S3 objects / REST endpoints → dataset | `POST /connectors-cloud`, `GET /connectors-cloud`, `POST /connectors-cloud/:id/sync` | `connectors:read/write` |
 | `connectors-airflow` | reuse **Airflow provider Hooks** via a Python `connector-runner` sidecar → dataset | `POST /connectors-airflow`, `GET /connectors-airflow`, `POST /connectors-airflow/:id/sync` | `connectors:read/write` |
-| `pipelines` | SQL transforms + **multi-step DAGs** → derived datasets | `POST /pipelines`, `GET /pipelines`, `POST /pipelines/:id/run` | `pipelines:read/write` |
+| `pipelines` | SQL transforms + **multi-step DAGs** → derived datasets; **build runs/health**, **data-quality expectations**, **cron scheduling** (via the worker) | `POST/GET /pipelines`, `POST /pipelines/:id/run`, `GET /pipelines/:id/runs`, `GET /pipelines/runs/:runId`, `PUT/DELETE /pipelines/:id/schedule` | `pipelines:read/write` |
 | `apps` | **app builder** — store/validate widget-graph app definitions (Workshop-equivalent) | `POST/GET /apps`, `GET/PUT/DELETE /apps/:id` | `apps:read/write` |
 | `ontology` | Object Types, Properties, Links, **Functions**, resolution, RLS | `POST/GET /ontology/object-types`, `GET /ontology/object-types/:n`, `GET /ontology/object-types/:n/objects`, `POST /ontology/link-types`, `POST /ontology/object-types/:n/functions`, `POST /ontology/object-types/:n/properties/:p/security` | `ontology:read/edit` |
 | `actions` | validated **ACID write-back** + audit | `POST/GET /actions/definitions`, `POST /actions/:n/execute` | `actions:read/edit/execute` |
