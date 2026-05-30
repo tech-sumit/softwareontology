@@ -8,12 +8,21 @@ export interface PropertyMapping {
   type: PropType;
 }
 
+export interface FunctionDef {
+  /** Computed property name, e.g. "isDelayed" */
+  name: string;
+  /** DuckDB SQL expression over resolved property names, e.g. "status = 'Delayed'" */
+  expression: string;
+  type: PropType;
+}
+
 export interface ObjectTypeMapping {
   /** Object type id, e.g. "Flight" */
   objectType: string;
   /** Name of the property that is the primary key (must exist in `properties`) */
   primaryKey: string;
   properties: PropertyMapping[];
+  functions?: FunctionDef[];
   backing: { kind: 'localFile' | 's3'; path: string };
 }
 

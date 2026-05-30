@@ -39,3 +39,23 @@ describe('buildResolveSql', () => {
     ).toThrow();
   });
 });
+
+describe('buildResolveSql with functions', () => {
+  const withFn: ObjectTypeMapping = {
+    ...flight,
+    functions: [{ name: 'isDelayed', expression: "status = 'Delayed'", type: 'bool' }],
+  };
+  it('adds a CAST computed column over the resolved CTE', () => {
+    const { sql } = buildResolveSql(withFn, 'pg', {});
+    expect(sql).toContain('FROM resolved');
+    expect(sql).toContain(`CAST((status = 'Delayed') AS BOOLEAN) AS "isDelayed"`);
+  });
+  it('is byte-identical to no-functions when functions is empty/absent', () => {
+    const a = buildResolveSql(flight, 'pg', {}).sql;
+    const b = buildResolveSql({ ...flight, functions: [] }, 'pg', {}).sql;
+    expect(a).toBe(b);
+  });
+  it('rejects dangerous expressions', () => {
+    expect(() => buildResolveSql({ ...flight, functions: [{ name: 'x', expression: 'status; DROP TABLE users', type: 'string' }] }, 'pg', {})).toThrow();
+  });
+});

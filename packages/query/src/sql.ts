@@ -16,6 +16,13 @@ const ALLOWED_OPS: Record<FilterOp, string> = {
   '=': '=', '!=': '!=', '>': '>', '<': '<', '>=': '>=', '<=': '<=',
 };
 
+const SAFE_EXPR = /^[A-Za-z0-9_\s'".,()<>=!+\-*/%|&:]+$/;
+function guardExpression(expr: string): void {
+  if (expr.length > 500) throw new Error('function expression too long');
+  if (expr.includes(';') || expr.includes('--') || expr.includes('/*')) throw new Error('illegal characters in function expression');
+  if (!SAFE_EXPR.test(expr)) throw new Error('disallowed characters in function expression');
+}
+
 /** Trusted-config identifiers only. Guard against SQL injection via config. */
 function ident(name: string): string {
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
@@ -67,6 +74,14 @@ export function buildResolveSql(
   const limit = Number.isInteger(opts.limit) ? opts.limit : 100;
   const offset = Number.isInteger(opts.offset) ? opts.offset : 0;
 
+  const funcCols = (m.functions ?? [])
+    .map((f) => {
+      guardExpression(f.expression);
+      return `CAST((${f.expression}) AS ${DUCK_TYPE[f.type]}) AS "${ident(f.name)}"`;
+    })
+    .join(', ');
+  const projection = funcCols ? `*, ${funcCols}` : '*';
+
   const sql =
 `WITH resolved AS (
   SELECT
@@ -78,7 +93,7 @@ export function buildResolveSql(
   FROM ${pgAlias}.public.object_created c
   WHERE c.object_type = '${ot}'
 )
-SELECT * FROM resolved
+SELECT ${projection} FROM resolved
 ${where}
 ORDER BY "${ident(m.primaryKey)}"
 LIMIT ${limit} OFFSET ${offset}`;
