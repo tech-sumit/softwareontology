@@ -1,4 +1,4 @@
-import type { Db } from '@so/sdk';
+import { applyMigrations, type Db } from '@so/sdk';
 
 const MIGRATIONS = [
   `CREATE TABLE IF NOT EXISTS action_defs (
@@ -23,5 +23,5 @@ const MIGRATIONS = [
 ];
 
 export async function runMigrations(db: Db): Promise<void> {
-  for (const sql of MIGRATIONS) await db.query(sql);
+  await applyMigrations(db, 'actions', MIGRATIONS);
 }

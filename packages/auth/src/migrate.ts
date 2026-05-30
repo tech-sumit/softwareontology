@@ -1,4 +1,4 @@
-import type { Db, Config } from '@so/sdk';
+import { applyMigrations, type Db, type Config } from '@so/sdk';
 import { hashPassword } from './password.js';
 
 const MIGRATIONS = [
@@ -42,7 +42,7 @@ const MIGRATIONS = [
 ];
 
 export async function runMigrations(db: Db): Promise<void> {
-  for (const sql of MIGRATIONS) await db.query(sql);
+  await applyMigrations(db, 'auth', MIGRATIONS);
 }
 
 /** Idempotently create the default org + admin role (perm '*') + admin user. */
