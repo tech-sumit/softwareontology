@@ -1,0 +1,15 @@
+# Rebuilt inside the image — never copy host artifacts in.
+**/node_modules
+**/dist
+**/.turbo
+**/coverage
+**/*.log
+
+# VCS / local
+.git
+.gitignore
+.DS_Store
+
+# Python sidecar local artifacts (built from its own context)
+services/connector-runner/.venv
+services/connector-runner/__pycache__

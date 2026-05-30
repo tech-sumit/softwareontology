@@ -27,9 +27,10 @@ services:
 
   createbuckets:
     image: minio/mc:latest
-    # 'init' profile keeps this one-shot out of `up --wait` (it exits, which would
-    # otherwise make --wait report failure). Run it explicitly via `compose run`.
-    profiles: ["init"]
+    # One-shot bucket creator. `pnpm infra:up` only names postgres+minio in its
+    # `up --wait`, so this stays out of that path and is run explicitly via
+    # `compose run`. In a full-stack `up` it runs once and the app waits on it
+    # (depends_on: service_completed_successfully).
     depends_on:
       minio:
         condition: service_healthy
@@ -48,3 +49,57 @@ services:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
     ports: ["8080:8080"]
+
+  # The platform itself: API + built web UI, all modules. Builds the shared image.
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: softwareontology/app:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      createbuckets:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://so:so@postgres:5432/so
+      S3_ENDPOINT: minio:9000
+      S3_ACCESS_KEY_ID: minioadmin
+      S3_SECRET_ACCESS_KEY: minioadmin
+      S3_BUCKET: so-datasets
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: admin
+      UI_DIST: /app/apps/web/dist
+      PORT: "3000"
+      CONNECTOR_RUNNER_URL: http://connector-runner:8077
+    ports: ["3000:3000"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  # Same image, runs the pg-boss worker. Starts after the app has migrated the DB.
+  worker:
+    image: softwareontology/app:latest
+    command: ["pnpm", "exec", "tsx", "apps/web/worker.mjs"]
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://so:so@postgres:5432/so
+      S3_ENDPOINT: minio:9000
+      S3_ACCESS_KEY_ID: minioadmin
+      S3_SECRET_ACCESS_KEY: minioadmin
+      S3_BUCKET: so-datasets
+
+  # Airflow-Hook connector sidecar. Opt-in (`--profile connectors`) — the image
+  # pulls apache-airflow, which is a heavy build.
+  connector-runner:
+    build:
+      context: ./services/connector-runner
+    image: softwareontology/connector-runner:latest
+    profiles: ["connectors"]
+    ports: ["8077:8077"]

@@ -60,6 +60,12 @@ importers:
       '@so/catalog':
         specifier: workspace:*
         version: link:../../packages/catalog
+      '@so/connectors-airflow':
+        specifier: workspace:*
+        version: link:../../packages/connectors-airflow
+      '@so/connectors-cloud':
+        specifier: workspace:*
+        version: link:../../packages/connectors-cloud
       '@so/connectors-db':
         specifier: workspace:*
         version: link:../../packages/connectors-db
@@ -78,12 +84,18 @@ importers:
       '@so/ontology':
         specifier: workspace:*
         version: link:../../packages/ontology
+      '@so/openapi':
+        specifier: workspace:*
+        version: link:../../packages/openapi
       '@so/pipelines':
         specifier: workspace:*
         version: link:../../packages/pipelines
       '@so/server':
         specifier: workspace:*
         version: link:../../packages/server
+      '@so/worker':
+        specifier: workspace:*
+        version: link:../../packages/worker
       '@testing-library/jest-dom':
         specifier: ^6.6.0
         version: 6.9.1

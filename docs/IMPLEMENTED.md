@@ -55,6 +55,10 @@ Vite + React. Tabs: **Login**, **Explorer** (object-type sidebar · resolved-obj
 
 Run everything: `pnpm run infra:up && pnpm run infra:seed && pnpm typecheck && pnpm lint && pnpm test`.
 
+## Deployment
+
+Fully containerized — `docker compose up -d --build` (or `pnpm docker:up`) starts Postgres, MinIO, the **app** (API + built UI, all modules), and the **worker**, in dependency order; the app is at `http://localhost:3000`. Optional `--profile connectors` (Airflow connector-runner) and `--profile keycloak` (SSO). Multi-stage image runs the workspace via `tsx` with a `vite`-built UI. See [DEPLOY.md](DEPLOY.md) for services, env vars, and hardening notes.
+
 ## Deferred (roadmap → see `docs/BACKLOG.md`)
 
 Dataset versioning/branches; LLM **agents** that choose tools + real **vector** semantic search (AIP depth, backlog #5); ML training/registry/inference (backlog #6); distributed compute + Helm/air-gap + HA/branching/OTel (scale & ops, backlog #8); app-builder richer widgets (charts/forms/layout) + action-parameter forms; `@so/ui-shell` dynamic module-UI extraction; pushdown aggregation/RLS for very large sets.

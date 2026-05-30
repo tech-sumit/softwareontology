@@ -29,12 +29,16 @@
     "@so/actions": "workspace:*",
     "@so/admin": "workspace:*",
     "@so/connectors-db": "workspace:*",
+    "@so/connectors-cloud": "workspace:*",
+    "@so/connectors-airflow": "workspace:*",
     "@so/pipelines": "workspace:*",
     "@so/catalog": "workspace:*",
     "@so/lineage": "workspace:*",
     "@so/dashboards": "workspace:*",
     "@so/aip": "workspace:*",
     "@so/automations": "workspace:*",
-    "@so/apps": "workspace:*"
+    "@so/apps": "workspace:*",
+    "@so/openapi": "workspace:*",
+    "@so/worker": "workspace:*"
   }
 }
