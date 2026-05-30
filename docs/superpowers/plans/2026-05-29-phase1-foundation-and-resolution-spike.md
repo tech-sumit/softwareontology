@@ -273,11 +273,11 @@ TRUNCATE object_created;
 
 -- an Action edited FL-204's status from base 'On time' to 'Delayed'
 INSERT INTO object_writeback (object_type, primary_key, property, value)
-VALUES ('Flight', 'FL-204', 'status', 'Delayed');
+VALUES ('SpikeFlight', 'FL-204', 'status', 'Delayed');
 
 -- an Action created a net-new flight not present in the base dataset
 INSERT INTO object_created (object_type, primary_key, payload)
-VALUES ('Flight', 'FL-900',
+VALUES ('SpikeFlight', 'FL-900',
   '{"flightNumber":"FL-900","status":"Scheduled","departureAt":"2026-05-29 14:00:00","seats":120}');
 ```
 
@@ -590,7 +590,7 @@ import type { ObjectTypeMapping, PropType, FilterOp, ResolveOptions } from './ty
 
 const DUCK_TYPE: Record<PropType, string> = {
   string: 'VARCHAR',
-  int: 'BIGINT',
+  int: 'INTEGER',
   float: 'DOUBLE',
   bool: 'BOOLEAN',
   timestamp: 'TIMESTAMP',
@@ -713,7 +713,7 @@ const PG = process.env.DATABASE_URL ?? 'postgresql://so:so@localhost:5432/so';
 
 function flightMapping(path: string): ObjectTypeMapping {
   return {
-    objectType: 'Flight',
+    objectType: 'SpikeFlight',
     primaryKey: 'flightNumber',
     properties: [
       { name: 'flightNumber', column: 'flight_no', type: 'string' },

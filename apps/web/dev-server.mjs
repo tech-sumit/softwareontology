@@ -1,4 +1,4 @@
-// Run the full API for local UI development: `node apps/web/dev-server.mjs`
+// Run the full API for local UI development: `pnpm dev:api`
 import { createServer, createConfig } from '@so/server';
 import { createLogger } from '@so/observability';
 import auth from '@so/auth';

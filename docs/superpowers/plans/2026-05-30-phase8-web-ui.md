@@ -596,7 +596,7 @@ and a README note: run a small bootstrap (below) for the API, and `pnpm dev:web`
 - [ ] **Step 4: Create a demo bootstrap — `apps/web/dev-server.mjs`** (a tiny script that starts the API with all modules, for the demo)
 
 ```js
-// Run the full API for local UI development: `node apps/web/dev-server.mjs`
+// Run the full API for local UI development: `pnpm dev:api`
 import { createServer, createConfig } from '@so/server';
 import { createLogger } from '@so/observability';
 import auth from '@so/auth';
@@ -619,7 +619,7 @@ Add to `apps/web/package.json` devDependencies the workspace API packages so the
     "@so/auth": "workspace:*", "@so/datasets": "workspace:*",
     "@so/ontology": "workspace:*", "@so/actions": "workspace:*"
 ```
-Then `pnpm install`. Document in the commit: API = `DATABASE_URL=... S3_* ... node apps/web/dev-server.mjs` (after `pnpm infra:up`), UI = `pnpm dev:web`.
+Then `pnpm install`. Document in the commit: API = `DATABASE_URL=... S3_* ... pnpm dev:api` (after `pnpm infra:up`), UI = `pnpm dev:web`.
 
 - [ ] **Step 5: Verify server still builds/tests**
 
