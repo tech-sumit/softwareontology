@@ -40,6 +40,12 @@ export async function createServer(opts: {
   await app.register(cookie);
   app.decorate('ctx', kernel.ctx);
 
+  // DuckDB returns BIGINT columns as JS BigInt, which JSON.stringify can't handle.
+  // Coerce BigInt -> Number globally so any route returning query rows serializes safely.
+  app.setReplySerializer((payload) =>
+    JSON.stringify(payload, (_key, value) => (typeof value === 'bigint' ? Number(value) : value)),
+  );
+
   app.get('/healthz', async () => ({ status: 'ok' }));
   app.get('/readyz', async (_req, reply) => {
     try {

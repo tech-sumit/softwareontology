@@ -28,7 +28,7 @@ describe('pipeline: SQL transform produces a derived dataset', () => {
 
     await server.app.inject({ method: 'POST', url: '/api/datasets?name=flightspipe&format=csv', headers: { ...auth, 'content-type': 'text/csv' }, payload: 'flight_no,status,seats\nFL-204,Delayed,189\nFL-118,Boarding,142\nFL-552,Delayed,200\n' });
 
-    const create = await server.app.inject({ method: 'POST', url: '/api/pipelines', headers: auth, payload: { name: 'delayedout', inputs: ['flightspipe'], sql: "SELECT flight_no FROM flightspipe WHERE status = 'Delayed'" } });
+    const create = await server.app.inject({ method: 'POST', url: '/api/pipelines', headers: auth, payload: { name: 'delayedout', inputs: ['flightspipe'], sql: "SELECT flight_no, seats FROM flightspipe WHERE status = 'Delayed'" } });
     expect(create.statusCode).toBe(201);
     const pid = create.json().id as string;
 
@@ -37,7 +37,8 @@ describe('pipeline: SQL transform produces a derived dataset', () => {
     expect(run.json().rowCount).toBe(2);
 
     const preview = await server.app.inject({ method: 'GET', url: `/api/datasets/${run.json().datasetId}/preview`, headers: auth });
-    const rows = preview.json().rows as Array<{ flight_no: string }>;
+    const rows = preview.json().rows as Array<{ flight_no: string; seats: number }>;
     expect(rows.map((r) => r.flight_no).sort()).toEqual(['FL-204', 'FL-552']);
+    expect(rows.every((r) => typeof r.seats === 'number')).toBe(true); // BigInt-safe serialization (server reply serializer)
   });
 });
