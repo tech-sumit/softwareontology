@@ -1,0 +1,7 @@
+{
+  "name": "@so/client", "version": "0.0.0", "private": true, "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run", "gen": "tsx ./gen.mjs" },
+  "dependencies": { "openapi-fetch": "^0.13.0" },
+  "devDependencies": { "openapi-typescript": "^7.4.0", "@so/openapi": "workspace:*", "@types/node": "^22.10.0" }
+}
