@@ -26,6 +26,14 @@
     "@so/auth": "workspace:*",
     "@so/datasets": "workspace:*",
     "@so/ontology": "workspace:*",
-    "@so/actions": "workspace:*"
+    "@so/actions": "workspace:*",
+    "@so/admin": "workspace:*",
+    "@so/connectors-db": "workspace:*",
+    "@so/pipelines": "workspace:*",
+    "@so/catalog": "workspace:*",
+    "@so/lineage": "workspace:*",
+    "@so/dashboards": "workspace:*",
+    "@so/aip": "workspace:*",
+    "@so/automations": "workspace:*"
   }
 }

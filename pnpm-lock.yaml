@@ -42,18 +42,42 @@ importers:
       '@so/actions':
         specifier: workspace:*
         version: link:../../packages/actions
+      '@so/admin':
+        specifier: workspace:*
+        version: link:../../packages/admin
+      '@so/aip':
+        specifier: workspace:*
+        version: link:../../packages/aip
       '@so/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@so/automations':
+        specifier: workspace:*
+        version: link:../../packages/automations
+      '@so/catalog':
+        specifier: workspace:*
+        version: link:../../packages/catalog
+      '@so/connectors-db':
+        specifier: workspace:*
+        version: link:../../packages/connectors-db
+      '@so/dashboards':
+        specifier: workspace:*
+        version: link:../../packages/dashboards
       '@so/datasets':
         specifier: workspace:*
         version: link:../../packages/datasets
+      '@so/lineage':
+        specifier: workspace:*
+        version: link:../../packages/lineage
       '@so/observability':
         specifier: workspace:*
         version: link:../../packages/observability
       '@so/ontology':
         specifier: workspace:*
         version: link:../../packages/ontology
+      '@so/pipelines':
+        specifier: workspace:*
+        version: link:../../packages/pipelines
       '@so/server':
         specifier: workspace:*
         version: link:../../packages/server

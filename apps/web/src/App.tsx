@@ -4,8 +4,10 @@ import { LoginForm } from './components/LoginForm';
 import { SetupView } from './views/SetupView';
 import { ExplorerView } from './views/ExplorerView';
 import { AdminView } from './views/AdminView';
+import { DashboardsView } from './views/DashboardsView';
+import { AskView } from './views/AskView';
 
-type View = 'setup' | 'explorer' | 'admin';
+type View = 'setup' | 'explorer' | 'admin' | 'dashboards' | 'ask';
 
 export function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -31,10 +33,14 @@ export function App() {
         <div className={`tab ${view === 'explorer' ? 'active' : ''}`} onClick={() => setView('explorer')}>Explorer</div>
         <div className={`tab ${view === 'setup' ? 'active' : ''}`} onClick={() => setView('setup')}>Upload &amp; model</div>
         <div className={`tab ${view === 'admin' ? 'active' : ''}`} onClick={() => setView('admin')}>Admin</div>
+        <div className={`tab ${view === 'dashboards' ? 'active' : ''}`} onClick={() => setView('dashboards')}>Dashboards</div>
+        <div className={`tab ${view === 'ask' ? 'active' : ''}`} onClick={() => setView('ask')}>Ask</div>
       </div>
       <div className="wrap">
         {view === 'setup' ? <SetupView onModeled={() => { setRefreshKey((k) => k + 1); setView('explorer'); }} />
           : view === 'admin' ? <AdminView />
+          : view === 'dashboards' ? <DashboardsView />
+          : view === 'ask' ? <AskView />
           : <ExplorerView key={refreshKey} />}
       </div>
     </>
