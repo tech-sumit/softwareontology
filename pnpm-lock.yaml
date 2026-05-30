@@ -48,6 +48,9 @@ importers:
       '@so/aip':
         specifier: workspace:*
         version: link:../../packages/aip
+      '@so/apps':
+        specifier: workspace:*
+        version: link:../../packages/apps
       '@so/auth':
         specifier: workspace:*
         version: link:../../packages/auth

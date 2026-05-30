@@ -34,6 +34,7 @@
     "@so/lineage": "workspace:*",
     "@so/dashboards": "workspace:*",
     "@so/aip": "workspace:*",
-    "@so/automations": "workspace:*"
+    "@so/automations": "workspace:*",
+    "@so/apps": "workspace:*"
   }
 }

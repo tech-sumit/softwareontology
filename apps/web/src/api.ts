@@ -1,6 +1,8 @@
 export interface User { id: string; orgId: string; email: string; permissions: string[]; }
 export interface ObjectTypeSummary { apiName: string; primaryKey: string; }
 export interface PropertyMeta { apiName: string; type: string; }
+export interface AppWidget { id: string; type: string; title?: string; config: Record<string, unknown>; }
+export interface AppDefinition { widgets: AppWidget[]; }
 
 async function req<T>(method: string, path: string, body?: unknown, asText = false): Promise<T> {
   const init: RequestInit = { method, credentials: 'include' };
@@ -34,4 +36,9 @@ export const api = {
   createUser: (email: string, password: string) => req<{ user: unknown }>('POST', '/admin/users', { email, password }),
   aggregate: (objectType: string, groupBy: string) => req<{ buckets: Array<{ group: string; count: number }> }>('POST', '/dashboards/aggregate', { objectType, groupBy }),
   ask: (objectType: string, question: string) => req<{ answer: string }>('POST', '/aip/ask', { objectType, question }),
+  listApps: () => req<{ apps: Array<{ id: string; name: string }> }>('GET', '/apps'),
+  getApp: (id: string) => req<{ id: string; name: string; definition: AppDefinition }>('GET', `/apps/${id}`),
+  createApp: (name: string, definition: AppDefinition) => req<{ id: string }>('POST', '/apps', { name, definition }),
+  updateApp: (id: string, body: { name?: string; definition?: AppDefinition }) => req<{ ok: boolean }>('PUT', `/apps/${id}`, body),
+  deleteApp: (id: string) => req<{ ok: boolean }>('DELETE', `/apps/${id}`),
 };
