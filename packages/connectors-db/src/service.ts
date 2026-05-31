@@ -7,21 +7,21 @@ const TABLE_RE = /^[A-Za-z_][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*$/;
 export interface ConnectorInput { name: string; sourceConnString: string; sourceTable: string; }
 
 export function createConnectorService(ctx: ModuleContext) {
-  async function createConnector(orgId: string, input: ConnectorInput): Promise<string> {
+  async function createConnector(orgId: string, projectId: string, input: ConnectorInput): Promise<string> {
     if (!NAME_RE.test(input.name)) throw new Error('invalid connector name');
     if (!TABLE_RE.test(input.sourceTable)) throw new Error('sourceTable must be schema.table');
     if (!input.sourceConnString) throw new Error('sourceConnString required');
     const id = randomUUID();
     await ctx.db.query(
-      `INSERT INTO db_connectors(id,org_id,name,source_conn_string,source_table) VALUES ($1,$2,$3,$4,$5)`,
-      [id, orgId, input.name, input.sourceConnString, input.sourceTable],
+      `INSERT INTO db_connectors(id,org_id,project_id,name,source_conn_string,source_table) VALUES ($1,$2,$3,$4,$5,$6)`,
+      [id, orgId, projectId, input.name, input.sourceConnString, input.sourceTable],
     );
     return id;
   }
 
-  async function listConnectors(orgId: string): Promise<Array<{ id: string; name: string; sourceTable: string }>> {
+  async function listConnectors(orgId: string, projectId: string): Promise<Array<{ id: string; name: string; sourceTable: string }>> {
     const rows = await ctx.db.query<{ id: string; name: string; source_table: string }>(
-      `SELECT id, name, source_table FROM db_connectors WHERE org_id = $1 ORDER BY name`, [orgId],
+      `SELECT id, name, source_table FROM db_connectors WHERE org_id = $1 AND project_id = $2 ORDER BY name`, [orgId, projectId],
     );
     return rows.map((r) => ({ id: r.id, name: r.name, sourceTable: r.source_table }));
   }
