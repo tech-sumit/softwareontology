@@ -8,15 +8,15 @@ export interface AppSummary { id: string; name: string; }
 export interface AppRecord { id: string; name: string; definition: AppDefinition; }
 
 export function createAppService(ctx: ModuleContext) {
-  async function createApp(orgId: string, name: string, definition: unknown): Promise<string> {
+  async function createApp(orgId: string, projectId: string, name: string, definition: unknown): Promise<string> {
     if (!name || !NAME_RE.test(name)) throw new Error('invalid app name');
     const def = validateDefinition(definition);
     const id = randomUUID();
-    await ctx.db.query(`INSERT INTO apps(id,org_id,name,definition) VALUES ($1,$2,$3,$4)`, [id, orgId, name, JSON.stringify(def)]);
+    await ctx.db.query(`INSERT INTO apps(id,org_id,project_id,name,definition) VALUES ($1,$2,$3,$4,$5)`, [id, orgId, projectId, name, JSON.stringify(def)]);
     return id;
   }
-  async function listApps(orgId: string): Promise<AppSummary[]> {
-    return ctx.db.query<AppSummary>(`SELECT id, name FROM apps WHERE org_id = $1 ORDER BY name`, [orgId]);
+  async function listApps(orgId: string, projectId: string): Promise<AppSummary[]> {
+    return ctx.db.query<AppSummary>(`SELECT id, name FROM apps WHERE org_id = $1 AND project_id = $2 ORDER BY name`, [orgId, projectId]);
   }
   async function getApp(orgId: string, id: string): Promise<AppRecord | null> {
     const rows = await ctx.db.query<{ id: string; name: string; definition: AppDefinition }>(`SELECT id, name, definition FROM apps WHERE org_id = $1 AND id = $2`, [orgId, id]);
