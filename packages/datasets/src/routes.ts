@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
+import type { DatasetAccessPolicy } from '@so/sdk';
 import { requirePermission } from '@so/auth';
 import { createDatasetService } from './service.js';
 
@@ -41,6 +42,12 @@ export const datasetRoutes: FastifyPluginAsync = async (fastify) => {
     const q = req.query as { limit?: string; offset?: string };
     const ds = await svc.get(req.user!.orgId, id);
     if (!ds) return reply.code(404).send({ error: 'not found' });
+    const policies = fastify.ctx.registry.get<DatasetAccessPolicy>('datasetAccessPolicies');
+    for (const policy of policies) {
+      if (!(await policy.check(fastify.ctx, req.user!.id, id))) {
+        return reply.code(403).send({ error: 'access denied: insufficient clearance' });
+      }
+    }
     const rows = await svc.preview(ds.objectKey, Number(q.limit ?? 50), Number(q.offset ?? 0));
     return { rows };
   });
