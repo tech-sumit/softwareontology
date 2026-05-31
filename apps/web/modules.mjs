@@ -12,6 +12,7 @@ import pipelines from '@so/pipelines';
 import catalog from '@so/catalog';
 import lineage from '@so/lineage';
 import dashboards from '@so/dashboards';
+import governance from '@so/governance';
 import aip from '@so/aip';
 import automations from '@so/automations';
 import apps from '@so/apps';
@@ -30,6 +31,7 @@ export const modules = [
   catalog,
   lineage,
   dashboards,
+  governance,
   aip,
   automations,
   apps,

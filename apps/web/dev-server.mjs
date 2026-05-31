@@ -11,12 +11,13 @@ import pipelines from '@so/pipelines';
 import catalog from '@so/catalog';
 import lineage from '@so/lineage';
 import dashboards from '@so/dashboards';
+import governance from '@so/governance';
 import aip from '@so/aip';
 import automations from '@so/automations';
 import apps from '@so/apps';
 
 const server = await createServer({
-  modules: [auth, datasets, ontology, actions, admin, connectorsDb, pipelines, catalog, lineage, dashboards, aip, automations, apps],
+  modules: [auth, datasets, ontology, actions, admin, connectorsDb, pipelines, catalog, lineage, dashboards, governance, aip, automations, apps],
   logger: createLogger(),
   config: createConfig(),
 });

@@ -75,6 +75,9 @@ importers:
       '@so/datasets':
         specifier: workspace:*
         version: link:../../packages/datasets
+      '@so/governance':
+        specifier: workspace:*
+        version: link:../../packages/governance
       '@so/lineage':
         specifier: workspace:*
         version: link:../../packages/lineage
@@ -514,6 +517,9 @@ importers:
       '@so/datasets':
         specifier: workspace:*
         version: link:../datasets
+      '@so/governance':
+        specifier: workspace:*
+        version: link:../governance
       '@so/lineage':
         specifier: workspace:*
         version: link:../lineage

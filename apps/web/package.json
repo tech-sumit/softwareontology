@@ -35,6 +35,7 @@
     "@so/catalog": "workspace:*",
     "@so/lineage": "workspace:*",
     "@so/dashboards": "workspace:*",
+    "@so/governance": "workspace:*",
     "@so/aip": "workspace:*",
     "@so/automations": "workspace:*",
     "@so/apps": "workspace:*",

@@ -7,6 +7,7 @@
     "@so/actions": "workspace:*", "@so/admin": "workspace:*", "@so/connectors-db": "workspace:*",
     "@so/pipelines": "workspace:*", "@so/catalog": "workspace:*", "@so/lineage": "workspace:*",
     "@so/dashboards": "workspace:*", "@so/aip": "workspace:*", "@so/automations": "workspace:*",
+    "@so/governance": "workspace:*",
     "@types/node": "^22.10.0", "@types/pg": "^8.11.0"
   }
 }

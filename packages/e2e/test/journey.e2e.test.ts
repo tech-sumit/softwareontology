@@ -14,6 +14,7 @@ import lineage from '@so/lineage';
 import dashboards from '@so/dashboards';
 import aip from '@so/aip';
 import automations from '@so/automations';
+import governance from '@so/governance';
 
 const PG = process.env.DATABASE_URL ?? 'postgresql://so:so@localhost:5432/so';
 const config = createConfig({
@@ -38,7 +39,7 @@ async function objects(cookie: string): Promise<Array<Record<string, unknown>>> 
 
 beforeAll(async () => {
   server = await createServer({
-    modules: [auth, datasets, ontology, actions, admin, connectorsDb, pipelines, catalog, lineage, dashboards, aip, automations],
+    modules: [auth, datasets, ontology, actions, admin, connectorsDb, pipelines, catalog, lineage, dashboards, aip, automations, governance],
     logger: createLogger(), config,
   });
   await server.kernel.start();
@@ -62,12 +63,16 @@ beforeAll(async () => {
   }
   await db.query(`DELETE FROM role_permissions WHERE role_id IN (SELECT id FROM roles WHERE name='e2elimitedrole')`);
   await db.query(`DELETE FROM roles WHERE name='e2elimitedrole'`);
+  await db.query(`DELETE FROM role_markings WHERE marking_id IN (SELECT id FROM markings WHERE name='E2EMARK')`);
+  await db.query(`DELETE FROM dataset_markings WHERE marking_id IN (SELECT id FROM markings WHERE name='E2EMARK')`);
+  await db.query(`DELETE FROM markings WHERE name='E2EMARK'`);
+  await db.query(`DELETE FROM pipelines WHERE name='e2egovpipe'`);
   admCookie = await login('admin@example.com', 'admin');
 });
 afterAll(async () => { await server?.stop(); });
 
-describe('E2E: full platform journey (all 12 modules)', () => {
-  it('upload → model → function → action → automation → dashboard → aip → catalog → lineage → connector → pipeline → admin', async () => {
+describe('E2E: full platform journey (all 13 modules)', () => {
+  it('upload → model → function → action → automation → dashboard → aip → catalog → lineage → connector → pipeline → admin → governance', async () => {
     const a = { cookie: admCookie };
 
     // 1. upload + model + computed function
@@ -138,6 +143,22 @@ describe('E2E: full platform journey (all 12 modules)', () => {
     expect(created.statusCode).toBe(201);
     const users = await server.app.inject({ method: 'GET', url: '/api/admin/users', headers: a });
     expect((users.json().users as Array<{ email: string }>).some((u) => u.email === 'e2euser@example.com')).toBe(true);
+
+    // N. governance: markings → mandatory access control → propagation
+    const govUp = await server.app.inject({ method: 'POST', url: '/api/datasets?name=e2egov&format=csv', headers: { ...a, 'content-type': 'text/csv' }, payload: 'k,v\n1,a\n2,b\n' });
+    const govDid = govUp.json().dataset.id as string;
+    const mk = await server.app.inject({ method: 'POST', url: '/api/governance/markings', headers: a, payload: { name: 'E2EMARK' } });
+    const mid = mk.json().id as string;
+    await server.app.inject({ method: 'POST', url: `/api/governance/markings/${mid}/datasets/${govDid}`, headers: a });
+    // mandatory access: even the admin is denied until cleared
+    expect((await server.app.inject({ method: 'GET', url: `/api/datasets/${govDid}/preview`, headers: a })).statusCode).toBe(403);
+    await server.app.inject({ method: 'POST', url: `/api/governance/markings/${mid}/roles/role_admin`, headers: a });
+    expect((await server.app.inject({ method: 'GET', url: `/api/datasets/${govDid}/preview`, headers: a })).statusCode).toBe(200);
+    // propagation: a derived dataset inherits the source marking
+    const gp = await server.app.inject({ method: 'POST', url: '/api/pipelines', headers: a, payload: { name: 'e2egovpipe', inputs: ['e2egov'], sql: 'SELECT * FROM e2egov' } });
+    const gr = await server.app.inject({ method: 'POST', url: `/api/pipelines/${gp.json().id}/run`, headers: a });
+    const om = await server.app.inject({ method: 'GET', url: `/api/governance/datasets/${gr.json().datasetId}/markings`, headers: a });
+    expect((om.json().markings as Array<{ name: string }>).some((m) => m.name === 'E2EMARK')).toBe(true);
   });
 
   it('property-level RLS masks a secured property for a limited user', async () => {
