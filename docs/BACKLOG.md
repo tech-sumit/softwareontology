@@ -7,6 +7,7 @@ Everything not yet built, organized by **strategic tier** (the gap to a real Pal
 ---
 
 ## ✅ Delivered (was on this backlog)
+- **Governance core (1B)** — `@so/governance`: **markings + mandatory access control** (clearance via roles, not bypassed by `*`) + **propagation through pipelines** (derived datasets inherit source markings — no laundering) + enforcement on dataset preview & ontology resolution, via generic `datasetAccessPolicies` / `datasetDerivationHooks` slots.
 - **Connectivity** — `@so/connectors-cloud` (S3/REST) + `@so/connectors-airflow` (Airflow Hook sidecar).
 - **Transformation/compute** — multi-step DAGs **+ full pipeline maturity: build health, data-quality expectations, cron scheduling, incremental builds**.
 - **Ontology depth** — link traversal / linked-object resolution.
@@ -22,11 +23,12 @@ Everything not yet built, organized by **strategic tier** (the gap to a real Pal
 ### A. Scale-out compute
 Single-node in-process DuckDB is a hard ceiling (~10s–100s GB). Need a distributed/pushdown engine (Trino / ClickHouse / Spark) + dataset partitioning, with the resolver pushing filters/aggregations down instead of pulling rows.
 
-### B. Governance & lineage depth *(recommended next; sovereign wedge)*
-- **Marking/classification-based access control** that **propagates through lineage** (a derived dataset inherits its sources' restrictions automatically).
+### B. Governance & lineage depth *(core delivered — see ✅ above; remainder below)*
+Done: marking-based MAC + propagation through pipelines + enforcement on preview/resolution. Remaining:
 - **Column-level lineage** + impact analysis.
-- Purpose-based access, full audit/provenance for compliance.
-- Query-level (pushdown) RLS; row-level (predicate) security; masking in `resolveObjects` for non-HTTP callers; a security-admin UI.
+- Enforce input-clearance when *triggering* a pipeline (currently the system reads inputs; the output is protected by propagation, but triggering isn't gated); connector-ingest marking.
+- Purpose-based access, full audit/provenance for compliance; marking **hierarchies/compartments**.
+- Query-level (pushdown) RLS; row-level (predicate) security; masking in `resolveObjects` for non-HTTP callers; a **governance/security-admin UI**; lineage view surfacing markings.
 
 ### C. Enterprise ops & deployment
 - Helm chart + **offline/air-gap install bundle** (vendored images/charts/DuckDB extensions).

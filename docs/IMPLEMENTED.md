@@ -2,7 +2,7 @@
 
 An open-source, self-hostable **Palantir Foundry alternative** built around a semantic Ontology layer. Modular monolith, TypeScript end-to-end (Fastify · React · Postgres · S3-API object store / MinIO · in-process DuckDB), with a `@so/kernel` + `@so/sdk` module framework.
 
-**Status:** all four spec phases plus the prioritized Foundry-gap items (connectivity, compute, ontology depth, app builder, SSO, SDK) and **production-grade pipelines** (build health, data-quality gates, scheduling) are built, tested, and demoable. As of this writing: **31 plans merged, 88 unit/integration + component tests + a full E2E suite, 24 packages + the web app.** Run `pnpm test` to verify; `pnpm dev:api` + `pnpm dev:web` to demo (sign in `admin@example.com` / `admin`); `docker compose up -d --build` for the full container stack.
+**Status:** all four spec phases plus the prioritized Foundry-gap items (connectivity, compute, ontology depth, app builder, SSO, SDK) and **production-grade pipelines** (build health, data-quality gates, scheduling) are built, tested, and demoable. As of this writing: **34 plans merged, 92 unit/integration + component tests + a full E2E suite, 25 packages + the web app.** Run `pnpm test` to verify; `pnpm dev:api` + `pnpm dev:web` to demo (sign in `admin@example.com` / `admin`); `docker compose up -d --build` for the full container stack.
 
 ---
 
@@ -11,7 +11,7 @@ An open-source, self-hostable **Palantir Foundry alternative** built around a se
 - **Kernel + modules.** `@so/kernel` loads modules in dependency order, owns the service container (`ctx`: `db`, `objectStore`, `query`, `registry`, `events`, `config`, `log`), exposes extension-point registries, and runs `onInstall`/`onStart`/`onStop`. Every capability is a module defined with `@so/sdk`'s `defineModule`.
 - **Host.** `@so/server` (Fastify) builds the real `ctx` services, mounts each module's `apiRoutes` under `/api/<moduleId>`, serves `/healthz` + `/readyz`, parses cookies, BigInt-safe JSON, and serves the built UI (`UI_DIST`). `@so/worker` runs jobs **and cron `schedules`** on pg-boss (it drives pipeline scheduling via a per-minute `pipeline.tick`). `@so/observability` provides pino logging.
 - **Resolution model (the core).** Source datasets are immutable Parquet in object storage. Object resolution merges the base Parquet (via DuckDB) with a Postgres **write-back overlay** (`object_writeback` edits + `object_created` new objects), so Actions' edits override base values. Computed Functions add columns over the resolved set.
-- **Production-grade.** Org-scoped (`org_id` everywhere, multi-tenancy-ready), ACID write-back (`Db.transaction`), RBAC + property-level masking, parameterized SQL, structured logging, health probes, idempotent migrations, strict TypeScript, CI.
+- **Production-grade.** Org-scoped (`org_id` everywhere, multi-tenancy-ready), ACID write-back (`Db.transaction`), RBAC + property-level masking, **marking-based mandatory access control that propagates through lineage** (derived datasets inherit source markings — enforced on dataset preview + ontology resolution via generic `datasetAccessPolicies` / `datasetDerivationHooks` extension slots), parameterized SQL, structured logging, health probes, idempotent migrations (concurrency-safe `applyMigrations`), strict TypeScript, CI.
 
 ---
 
@@ -36,6 +36,7 @@ Foundation: **`@so/kernel`**, **`@so/sdk`**, **`@so/query`** (DuckDB resolver), 
 | `dashboards` | group-by aggregation over object sets | `POST /dashboards/aggregate` | `dashboards:read` |
 | `aip` | LLM gateway + ask-over-ontology (echo/http providers) | `POST /aip/complete`, `POST /aip/ask` | `aip:use` |
 | `admin` | user & role/permission administration | `GET/POST /admin/users`, `GET/POST /admin/roles`, `GET /admin/permissions` | `admin:users/roles` |
+| `governance` | **markings + mandatory access control** (clearance via roles, not bypassed by `*`); **propagation** (derived datasets inherit source markings) | `POST/GET /governance/markings`, `POST /governance/markings/:id/datasets/:dsId`, `POST /governance/markings/:id/roles/:roleId`, `GET /governance/datasets/:id/markings`, `GET /governance/me/clearances` | `governance:read/manage` |
 
 | `openapi` | serves a generated **OpenAPI 3.1 spec** of the platform API | `GET /openapi/spec` | — |
 
