@@ -62,4 +62,20 @@ export const api = {
   pipelineRuns: (id: string) => req<{ runs: Array<{ id: string; status: string; trigger: string; rowCount: number | null; error: string | null; startedAt: string }> }>('GET', `/pipelines/${id}/runs`),
   setPipelineSchedule: (id: string, cron: string) => req<{ ok: boolean }>('PUT', `/pipelines/${id}/schedule`, { cron }),
   clearPipelineSchedule: (id: string) => req<{ ok: boolean }>('DELETE', `/pipelines/${id}/schedule`),
+  // connectors — DB (Postgres): create { name, sourceConnString, sourceTable (schema.table) }
+  listConnectorsDb: () => req<{ connectors: Array<{ id: string; name: string; sourceTable: string }> }>('GET', '/connectors-db'),
+  createConnectorDb: (body: { name: string; sourceConnString: string; sourceTable: string }) => req<{ id: string }>('POST', '/connectors-db', body),
+  syncConnectorDb: (id: string) => req<{ datasetId: string; rowCount: number }>('POST', `/connectors-db/${id}/sync`),
+  // connectors — Cloud: list returns kind; create via /s3 ({ name, s3Url, format? }) or /rest ({ name, url, arrayPath? })
+  listConnectorsCloud: () => req<{ connectors: Array<{ id: string; name: string; kind: string }> }>('GET', '/connectors-cloud'),
+  createConnectorS3: (body: { name: string; s3Url: string; format?: string }) => req<{ id: string }>('POST', '/connectors-cloud/s3', body),
+  createConnectorRest: (body: { name: string; url: string; arrayPath?: string }) => req<{ id: string }>('POST', '/connectors-cloud/rest', body),
+  syncConnectorCloud: (id: string) => req<{ datasetId: string; rowCount: number }>('POST', `/connectors-cloud/${id}/sync`),
+  // connectors — Airflow: create { name, provider, conn, query }
+  listConnectorsAirflow: () => req<{ connectors: Array<{ id: string; name: string; provider: string }> }>('GET', '/connectors-airflow'),
+  createConnectorAirflow: (body: { name: string; provider: string; conn: string; query: string }) => req<{ id: string }>('POST', '/connectors-airflow', body),
+  syncConnectorAirflow: (id: string) => req<{ datasetId: string; rowCount: number }>('POST', `/connectors-airflow/${id}/sync`),
+  // automations: create { name, triggerAction, thenAction, thenEdits? }
+  listAutomations: () => req<{ automations: Array<{ id: string; name: string; triggerAction: string; thenAction: string }> }>('GET', '/automations'),
+  createAutomation: (body: { name: string; triggerAction: string; thenAction: string; thenEdits?: Record<string, unknown> }) => req<{ id: string }>('POST', '/automations', body),
 };

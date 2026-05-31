@@ -12,6 +12,8 @@ import { AppsView } from './views/AppsView';
 import { GovernanceView } from './views/GovernanceView';
 import { DataView } from './views/DataView';
 import { PipelinesView } from './views/PipelinesView';
+import { ConnectorsView } from './views/ConnectorsView';
+import { AutomationsView } from './views/AutomationsView';
 import { PlaceholderView } from './views/PlaceholderView';
 
 const GROUPS: NavGroup[] = [
@@ -59,8 +61,8 @@ export function App() {
       case 'ask': return <AskView />;
       case 'admin': return <AdminView />;
       case 'pipelines': return <PipelinesView key={refreshKey} />;
-      case 'connectors': return <PlaceholderView title="Connectors" />;
-      case 'automations': return <PlaceholderView title="Automations" />;
+      case 'connectors': return <ConnectorsView key={refreshKey} />;
+      case 'automations': return <AutomationsView key={refreshKey} />;
       case 'lineage': return <PlaceholderView title="Lineage" />;
       case 'catalog': return <PlaceholderView title="Catalog" />;
       case 'apisdk': return <PlaceholderView title="API & SDK" />;
