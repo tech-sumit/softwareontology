@@ -2,7 +2,7 @@
 
 An open-source, self-hostable **Palantir Foundry alternative** built around a semantic Ontology layer. Modular monolith, TypeScript end-to-end (Fastify · React · Postgres · S3-API object store / MinIO · in-process DuckDB), with a `@so/kernel` + `@so/sdk` module framework.
 
-**Status:** all four spec phases plus the prioritized Foundry-gap items (connectivity, compute, ontology depth, app builder, SSO, SDK) and **production-grade pipelines** (build health, data-quality gates, scheduling) are built, tested, and demoable. As of this writing: **36 plans merged, 94 unit/integration + component tests + a full E2E suite (which now covers governance markings/MAC/propagation), 25 packages + the web app.** Run `pnpm test` to verify; `pnpm dev:api` + `pnpm dev:web` to demo (sign in `admin@example.com` / `admin`); `docker compose up -d --build` for the full container stack.
+**Status:** all four spec phases plus the prioritized Foundry-gap items (connectivity, compute, ontology depth, app builder, SSO, SDK) and **production-grade pipelines** (build health, data-quality gates, scheduling) are built, tested, and demoable. As of this writing: **44 plans merged, 110 unit/integration + component tests + a full E2E suite, 26 packages + the web app.** The web UI was reorganized into a Foundry-style shell (left sidebar + **project switcher**) that surfaces every capability. Run `pnpm test` to verify; `pnpm dev:api` + `pnpm dev:web` to demo (sign in `admin@example.com` / `admin`); `docker compose up -d --build` for the full container stack.
 
 ---
 
@@ -36,6 +36,7 @@ Foundation: **`@so/kernel`**, **`@so/sdk`**, **`@so/query`** (DuckDB resolver), 
 | `dashboards` | group-by aggregation over object sets | `POST /dashboards/aggregate` | `dashboards:read` |
 | `aip` | LLM gateway + ask-over-ontology (echo/http providers) | `POST /aip/complete`, `POST /aip/ask` | `aip:use` |
 | `admin` | user & role/permission administration | `GET/POST /admin/users`, `GET/POST /admin/roles`, `GET /admin/permissions` | `admin:users/roles` |
+| `projects` | **multi-project workspaces** under an org; project-scoped resources via an `X-Project` header (shared ontology) | `POST/GET /projects`, `GET /projects/:id` | `projects:read/write` |
 | `governance` | **markings + mandatory access control** (clearance via roles, not bypassed by `*`); **propagation** (derived datasets inherit source markings) | `POST/GET /governance/markings`, `POST /governance/markings/:id/datasets/:dsId`, `POST /governance/markings/:id/roles/:roleId`, `GET /governance/datasets/:id/markings`, `GET /governance/me/clearances` | `governance:read/manage` |
 
 | `openapi` | serves a generated **OpenAPI 3.1 spec** of the platform API | `GET /openapi/spec` | — |
@@ -46,7 +47,12 @@ Host endpoints: `GET /healthz`, `GET /readyz`, and the SPA at `/` (when `UI_DIST
 
 ## Web app (`apps/web`)
 
-Vite + React. Tabs: **Login**, **Explorer** (object-type sidebar · resolved-objects table · detail + action buttons), **Upload & model**, **Admin** (users), **Dashboards** (group-by bar chart), **Ask** (AIP), **Apps** (low-code builder: compose object-table / metric / action-button widgets → save → run against live data), **Governance** (create markings · apply to datasets · grant clearances to roles · view your clearances). API client with cookie auth. Pure components unit-tested under jsdom. Served by the API via `UI_DIST`; governance is wired into the dev server + container module list.
+Vite + React, organized as a **Foundry-style shell**: a top bar with a **project switcher** (+ New project), a **left sidebar** grouping all surfaces, and a main panel. The API client sends the active project as an `X-Project` header on every request.
+
+- **PROJECT** group (project-scoped): **Data** (datasets list + preview) · **Upload & model** · **Pipelines** (list · create single-SQL or multi-step DAG + data-quality expectations · run · build-health runs · cron schedule) · **Connectors** (DB / S3 / REST / Airflow — create + sync) · **Apps** (low-code widget builder → run) · **Automations** (event-driven follow-up actions)
+- **PLATFORM** group (shared): **Ontology Explorer** (object types · resolved objects · detail + actions) · **Lineage** (object type → dataset/actions/links) · **Catalog** (global search + audit log) · **Dashboards** (group-by chart) · **Governance** (markings · apply · grant clearance · view clearances) · **API & SDK** (browse OpenAPI endpoints + typed-SDK generation) · **Ask** (AIP) · **Admin** (users/roles)
+
+Pure components unit-tested under jsdom (LoginForm, ObjectsTable, BarList, UsersTable, AppRuntime, MarkingsTable, Sidebar, ProjectSwitcher, RunsTable, ConnectorList, EndpointList). Served by the API via `UI_DIST`; all modules (incl. `projects`) are wired into the dev server (`dev-server.mjs` imports the shared `modules.mjs`) + the container.
 
 ## Testing
 
