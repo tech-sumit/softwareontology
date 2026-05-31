@@ -4,10 +4,15 @@ export interface PropertyMeta { apiName: string; type: string; }
 export interface AppWidget { id: string; type: string; title?: string; config: Record<string, unknown>; }
 export interface AppDefinition { widgets: AppWidget[]; }
 
+let currentProjectId = 'project_default';
+export function setActiveProject(id: string): void { currentProjectId = id; }
+export function getActiveProject(): string { return currentProjectId; }
+
 async function req<T>(method: string, path: string, body?: unknown, asText = false): Promise<T> {
-  const init: RequestInit = { method, credentials: 'include' };
+  const headers: Record<string, string> = { 'x-project': currentProjectId };
+  const init: RequestInit = { method, credentials: 'include', headers };
   if (body !== undefined) {
-    init.headers = { 'content-type': asText ? 'text/csv' : 'application/json' };
+    headers['content-type'] = asText ? 'text/csv' : 'application/json';
     init.body = asText ? (body as string) : JSON.stringify(body);
   }
   const res = await fetch(`/api${path}`, init);
@@ -41,7 +46,10 @@ export const api = {
   createApp: (name: string, definition: AppDefinition) => req<{ id: string }>('POST', '/apps', { name, definition }),
   updateApp: (id: string, body: { name?: string; definition?: AppDefinition }) => req<{ ok: boolean }>('PUT', `/apps/${id}`, body),
   deleteApp: (id: string) => req<{ ok: boolean }>('DELETE', `/apps/${id}`),
-  listDatasets: () => req<{ datasets: Array<{ id: string; name: string }> }>('GET', '/datasets'),
+  listDatasets: () => req<{ datasets: Array<{ id: string; name: string; rowCount?: number }> }>('GET', '/datasets'),
+  listProjects: () => req<{ projects: Array<{ id: string; name: string }> }>('GET', '/projects'),
+  createProject: (name: string) => req<{ id: string }>('POST', '/projects', { name }),
+  datasetPreview: (id: string) => req<{ rows: Record<string, unknown>[] }>('GET', `/datasets/${id}/preview`),
   listRoles: () => req<{ roles: Array<{ id: string; name: string }> }>('GET', '/admin/roles'),
   listMarkings: () => req<{ markings: Array<{ id: string; name: string }> }>('GET', '/governance/markings'),
   createMarking: (name: string) => req<{ id: string }>('POST', '/governance/markings', { name }),
