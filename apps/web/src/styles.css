@@ -32,3 +32,8 @@ label { display: block; font-size: 13px; color: #54606e; margin: 8px 0 4px; }
 .navitem:hover { background: #1f2630; }
 .navitem.active { background: #1f6feb22; color: #fff; border-left: 2px solid #1f6feb; padding-left: 14px; }
 .main-panel { flex: 1; overflow-y: auto; padding: 20px; }
+.badge { padding: 2px 8px; border-radius: 10px; font-size: 12px; text-transform: capitalize; }
+.badge.success { background: #1f6f3f; color: #fff; }
+.badge.failed { background: #8b1a1a; color: #fff; }
+.badge.running { background: #9e6a00; color: #fff; }
+ul.plain { list-style: none; padding: 0; margin: 0; }

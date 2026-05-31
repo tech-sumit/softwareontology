@@ -56,4 +56,10 @@ export const api = {
   applyMarking: (markingId: string, datasetId: string) => req<{ ok: boolean }>('POST', `/governance/markings/${markingId}/datasets/${datasetId}`),
   grantMarking: (markingId: string, roleId: string) => req<{ ok: boolean }>('POST', `/governance/markings/${markingId}/roles/${roleId}`),
   myClearances: () => req<{ clearances: Array<{ id: string; name: string }> }>('GET', '/governance/me/clearances'),
+  listPipelines: () => req<{ pipelines: Array<{ id: string; name: string; inputs: string[] }> }>('GET', '/pipelines'),
+  createPipeline: (body: unknown) => req<{ id: string }>('POST', '/pipelines', body),
+  runPipeline: (id: string) => req<{ datasetId: string; rowCount: number; runId: string }>('POST', `/pipelines/${id}/run`),
+  pipelineRuns: (id: string) => req<{ runs: Array<{ id: string; status: string; trigger: string; rowCount: number | null; error: string | null; startedAt: string }> }>('GET', `/pipelines/${id}/runs`),
+  setPipelineSchedule: (id: string, cron: string) => req<{ ok: boolean }>('PUT', `/pipelines/${id}/schedule`, { cron }),
+  clearPipelineSchedule: (id: string) => req<{ ok: boolean }>('DELETE', `/pipelines/${id}/schedule`),
 };
