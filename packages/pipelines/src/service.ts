@@ -34,7 +34,7 @@ function validateExpectations(input: unknown): Expectation[] {
 
 export interface PipelineStep { name: string; sql: string; }
 export interface Expectation { type: 'row_count_min' | 'row_count_max' | 'not_null' | 'unique'; value?: number; column?: string; }
-export interface PipelineInput { name: string; inputs: string[]; sql?: string; steps?: PipelineStep[]; expectations?: Expectation[]; }
+export interface PipelineInput { name: string; inputs: string[]; sql?: string; steps?: PipelineStep[]; expectations?: Expectation[]; incremental?: boolean; watermarkColumn?: string; }
 
 export function createPipelineService(ctx: ModuleContext) {
   async function createPipeline(orgId: string, input: PipelineInput): Promise<string> {
@@ -49,10 +49,15 @@ export function createPipelineService(ctx: ModuleContext) {
       guardSql(input.sql);
     }
     const expectations = validateExpectations(input.expectations);
+    if (input.incremental) {
+      if (hasSteps || !input.sql) throw new Error('incremental pipelines require sql (not steps)');
+      if (input.inputs.length !== 1) throw new Error('incremental pipelines require exactly one input');
+      if (!input.watermarkColumn || !NAME_RE.test(input.watermarkColumn)) throw new Error('incremental pipelines require a valid watermarkColumn');
+    }
     const id = randomUUID();
     await ctx.db.query(
-      `INSERT INTO pipelines(id,org_id,name,sql,inputs,steps,expectations) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-      [id, orgId, input.name, input.sql ?? '', JSON.stringify(input.inputs), hasSteps ? JSON.stringify(input.steps) : null, expectations.length ? JSON.stringify(expectations) : null],
+      `INSERT INTO pipelines(id,org_id,name,sql,inputs,steps,expectations,incremental,watermark_column) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [id, orgId, input.name, input.sql ?? '', JSON.stringify(input.inputs), hasSteps ? JSON.stringify(input.steps) : null, expectations.length ? JSON.stringify(expectations) : null, input.incremental ?? false, input.watermarkColumn ?? null],
     );
     return id;
   }
@@ -65,8 +70,8 @@ export function createPipelineService(ctx: ModuleContext) {
   }
 
   async function run(orgId: string, pipelineId: string, trigger = 'manual'): Promise<{ datasetId: string; rowCount: number; runId: string }> {
-    const p = await ctx.db.query<{ name: string; sql: string; inputs: string[]; steps: PipelineStep[] | null; expectations: Expectation[] | null }>(
-      `SELECT name, sql, inputs, steps, expectations FROM pipelines WHERE org_id = $1 AND id = $2`, [orgId, pipelineId],
+    const p = await ctx.db.query<{ name: string; sql: string; inputs: string[]; steps: PipelineStep[] | null; expectations: Expectation[] | null; incremental: boolean; watermark_column: string | null; last_watermark: string | null; output_dataset_id: string | null }>(
+      `SELECT name, sql, inputs, steps, expectations, incremental, watermark_column, last_watermark, output_dataset_id FROM pipelines WHERE org_id = $1 AND id = $2`, [orgId, pipelineId],
     );
     const pipe = p[0];
     if (!pipe) throw new Error('pipeline not found');
@@ -79,6 +84,41 @@ export function createPipelineService(ctx: ModuleContext) {
       const s3url = ctx.objectStore.getObjectUrl(objectKey);
       const session = await ctx.query.open();
       try {
+        if (pipe.incremental) {
+          if (!pipe.watermark_column) throw new Error('incremental pipeline missing watermark column');
+          const inputName = pipe.inputs[0]!;
+          if (!NAME_RE.test(inputName)) throw new Error(`invalid input name: ${inputName}`);
+          const ds = await ctx.db.query<{ object_key: string }>(
+            `SELECT object_key FROM datasets WHERE org_id = $1 AND name = $2 ORDER BY created_at DESC LIMIT 1`, [orgId, inputName],
+          );
+          if (!ds[0]) throw new Error(`input dataset not found: ${inputName}`);
+          const inUrl = ctx.objectStore.getObjectUrl(ds[0].object_key);
+          const desc = await session.all(`DESCRIBE SELECT * FROM read_parquet('${inUrl}')`);
+          const wm = desc.find((c) => String((c as { column_name?: string }).column_name) === pipe.watermark_column);
+          if (!wm) throw new Error(`watermark column not found: ${pipe.watermark_column}`);
+          const wmType = String((wm as { column_type?: string }).column_type);
+          const filter = pipe.last_watermark != null ? ` WHERE ${pipe.watermark_column} > CAST('${pipe.last_watermark}' AS ${wmType})` : '';
+          await session.all(`CREATE OR REPLACE VIEW ${inputName} AS SELECT * FROM read_parquet('${inUrl}')${filter}`);
+          await session.all(`CREATE TEMP TABLE _delta AS ${pipe.sql}`);
+          const dCount = Number((await session.all(`SELECT count(*)::int AS n FROM _delta`))[0]?.n ?? 0);
+          const maxRow = await session.all(`SELECT max(${pipe.watermark_column})::VARCHAR AS w FROM ${inputName}`);
+          const newMax = (maxRow[0] as { w?: string | null })?.w ?? null;
+
+          let outId = pipe.output_dataset_id;
+          if (!outId) {
+            outId = randomUUID();
+            await ctx.db.query(`INSERT INTO datasets(id,org_id,name,object_key,row_count) VALUES ($1,$2,$3,$4,0)`, [outId, orgId, pipe.name, `${orgId}/datasets/${outId}/parts/*.parquet`]);
+            const cols = await session.all(`DESCRIBE _delta`);
+            for (let i = 0; i < cols.length; i++) { const col = cols[i]!; await ctx.db.query(`INSERT INTO dataset_columns(dataset_id,ordinal,name,duck_type) VALUES ($1,$2,$3,$4)`, [outId, i, String(col.column_name), String(col.column_type)]); }
+            await ctx.db.query(`UPDATE pipelines SET output_dataset_id = $1 WHERE id = $2`, [outId, pipelineId]);
+          }
+          const partUrl = ctx.objectStore.getObjectUrl(`${orgId}/datasets/${outId}/parts/${runId}.parquet`);
+          await session.all(`COPY _delta TO '${partUrl}' (FORMAT parquet)`);
+          await ctx.db.query(`UPDATE datasets SET row_count = row_count + $1 WHERE id = $2`, [dCount, outId]);
+          if (newMax != null) await ctx.db.query(`UPDATE pipelines SET last_watermark = $1 WHERE id = $2`, [newMax, pipelineId]);
+          await ctx.db.query(`UPDATE pipeline_runs SET status='success', dataset_id=$1, row_count=$2, finished_at=now() WHERE id=$3`, [outId, dCount, runId]);
+          return { datasetId: outId, rowCount: dCount, runId };
+        }
         for (const inputName of pipe.inputs) {
           if (!NAME_RE.test(inputName)) throw new Error(`invalid input name: ${inputName}`);
           const ds = await ctx.db.query<{ object_key: string }>(

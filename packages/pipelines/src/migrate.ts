@@ -26,6 +26,10 @@ const MIGRATIONS = [
   `ALTER TABLE pipelines ADD COLUMN IF NOT EXISTS expectations jsonb`,
   `ALTER TABLE pipelines ADD COLUMN IF NOT EXISTS schedule text`,
   `ALTER TABLE pipelines ADD COLUMN IF NOT EXISTS last_run_at timestamptz`,
+  `ALTER TABLE pipelines ADD COLUMN IF NOT EXISTS incremental boolean NOT NULL DEFAULT false`,
+  `ALTER TABLE pipelines ADD COLUMN IF NOT EXISTS watermark_column text`,
+  `ALTER TABLE pipelines ADD COLUMN IF NOT EXISTS last_watermark text`,
+  `ALTER TABLE pipelines ADD COLUMN IF NOT EXISTS output_dataset_id text`,
 ];
 
 export async function runMigrations(db: Db): Promise<void> {
