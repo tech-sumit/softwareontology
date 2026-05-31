@@ -30,6 +30,7 @@ const MIGRATIONS = [
   `ALTER TABLE pipelines ADD COLUMN IF NOT EXISTS watermark_column text`,
   `ALTER TABLE pipelines ADD COLUMN IF NOT EXISTS last_watermark text`,
   `ALTER TABLE pipelines ADD COLUMN IF NOT EXISTS output_dataset_id text`,
+  `ALTER TABLE pipelines ADD COLUMN IF NOT EXISTS project_id text NOT NULL DEFAULT 'project_default'`,
 ];
 
 export async function runMigrations(db: Db): Promise<void> {

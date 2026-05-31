@@ -37,7 +37,7 @@ export interface Expectation { type: 'row_count_min' | 'row_count_max' | 'not_nu
 export interface PipelineInput { name: string; inputs: string[]; sql?: string; steps?: PipelineStep[]; expectations?: Expectation[]; incremental?: boolean; watermarkColumn?: string; }
 
 export function createPipelineService(ctx: ModuleContext) {
-  async function createPipeline(orgId: string, input: PipelineInput): Promise<string> {
+  async function createPipeline(orgId: string, projectId: string, input: PipelineInput): Promise<string> {
     if (!NAME_RE.test(input.name)) throw new Error('invalid pipeline name');
     if (!Array.isArray(input.inputs) || input.inputs.length === 0) throw new Error('at least one input dataset name required');
     for (const i of input.inputs) if (!NAME_RE.test(i)) throw new Error(`invalid input dataset name: ${i}`);
@@ -56,15 +56,15 @@ export function createPipelineService(ctx: ModuleContext) {
     }
     const id = randomUUID();
     await ctx.db.query(
-      `INSERT INTO pipelines(id,org_id,name,sql,inputs,steps,expectations,incremental,watermark_column) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-      [id, orgId, input.name, input.sql ?? '', JSON.stringify(input.inputs), hasSteps ? JSON.stringify(input.steps) : null, expectations.length ? JSON.stringify(expectations) : null, input.incremental ?? false, input.watermarkColumn ?? null],
+      `INSERT INTO pipelines(id,org_id,name,sql,inputs,steps,expectations,incremental,watermark_column,project_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [id, orgId, input.name, input.sql ?? '', JSON.stringify(input.inputs), hasSteps ? JSON.stringify(input.steps) : null, expectations.length ? JSON.stringify(expectations) : null, input.incremental ?? false, input.watermarkColumn ?? null, projectId],
     );
     return id;
   }
 
-  async function listPipelines(orgId: string): Promise<Array<{ id: string; name: string; inputs: string[] }>> {
+  async function listPipelines(orgId: string, projectId: string): Promise<Array<{ id: string; name: string; inputs: string[] }>> {
     const rows = await ctx.db.query<{ id: string; name: string; inputs: string[] }>(
-      `SELECT id, name, inputs FROM pipelines WHERE org_id = $1 ORDER BY name`, [orgId],
+      `SELECT id, name, inputs FROM pipelines WHERE org_id = $1 AND project_id = $2 ORDER BY name`, [orgId, projectId],
     );
     return rows.map((r) => ({ id: r.id, name: r.name, inputs: r.inputs }));
   }
