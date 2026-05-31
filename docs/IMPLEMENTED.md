@@ -2,7 +2,7 @@
 
 An open-source, self-hostable **Palantir Foundry alternative** built around a semantic Ontology layer. Modular monolith, TypeScript end-to-end (Fastify · React · Postgres · S3-API object store / MinIO · in-process DuckDB), with a `@so/kernel` + `@so/sdk` module framework.
 
-**Status:** all four spec phases plus the prioritized Foundry-gap items (connectivity, compute, ontology depth, app builder, SSO, SDK) and **production-grade pipelines** (build health, data-quality gates, scheduling) are built, tested, and demoable. As of this writing: **34 plans merged, 92 unit/integration + component tests + a full E2E suite, 25 packages + the web app.** Run `pnpm test` to verify; `pnpm dev:api` + `pnpm dev:web` to demo (sign in `admin@example.com` / `admin`); `docker compose up -d --build` for the full container stack.
+**Status:** all four spec phases plus the prioritized Foundry-gap items (connectivity, compute, ontology depth, app builder, SSO, SDK) and **production-grade pipelines** (build health, data-quality gates, scheduling) are built, tested, and demoable. As of this writing: **36 plans merged, 94 unit/integration + component tests + a full E2E suite (which now covers governance markings/MAC/propagation), 25 packages + the web app.** Run `pnpm test` to verify; `pnpm dev:api` + `pnpm dev:web` to demo (sign in `admin@example.com` / `admin`); `docker compose up -d --build` for the full container stack.
 
 ---
 
@@ -46,7 +46,7 @@ Host endpoints: `GET /healthz`, `GET /readyz`, and the SPA at `/` (when `UI_DIST
 
 ## Web app (`apps/web`)
 
-Vite + React. Tabs: **Login**, **Explorer** (object-type sidebar · resolved-objects table · detail + action buttons), **Upload & model**, **Admin** (users), **Dashboards** (group-by bar chart), **Ask** (AIP), **Apps** (low-code builder: compose object-table / metric / action-button widgets → save → run against live data). API client with cookie auth. Pure components unit-tested under jsdom.
+Vite + React. Tabs: **Login**, **Explorer** (object-type sidebar · resolved-objects table · detail + action buttons), **Upload & model**, **Admin** (users), **Dashboards** (group-by bar chart), **Ask** (AIP), **Apps** (low-code builder: compose object-table / metric / action-button widgets → save → run against live data), **Governance** (create markings · apply to datasets · grant clearances to roles · view your clearances). API client with cookie auth. Pure components unit-tested under jsdom. Served by the API via `UI_DIST`; governance is wired into the dev server + container module list.
 
 ## Testing
 
