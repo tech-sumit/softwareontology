@@ -9,16 +9,16 @@ const NAME_RE = /^[A-Za-z0-9_-]+$/;
 export interface CloudConnectorInput { name: string; kind: 's3' | 'rest'; config: Record<string, unknown>; }
 
 export function createCloudConnectorService(ctx: ModuleContext) {
-  async function createConnector(orgId: string, input: CloudConnectorInput): Promise<string> {
+  async function createConnector(orgId: string, projectId: string, input: CloudConnectorInput): Promise<string> {
     if (!NAME_RE.test(input.name)) throw new Error('invalid connector name');
     if (input.kind !== 's3' && input.kind !== 'rest') throw new Error('kind must be s3|rest');
     const id = randomUUID();
-    await ctx.db.query(`INSERT INTO cloud_connectors(id,org_id,name,kind,config) VALUES ($1,$2,$3,$4,$5)`, [id, orgId, input.name, input.kind, JSON.stringify(input.config ?? {})]);
+    await ctx.db.query(`INSERT INTO cloud_connectors(id,org_id,project_id,name,kind,config) VALUES ($1,$2,$3,$4,$5,$6)`, [id, orgId, projectId, input.name, input.kind, JSON.stringify(input.config ?? {})]);
     return id;
   }
 
-  async function listConnectors(orgId: string): Promise<Array<{ id: string; name: string; kind: string }>> {
-    const rows = await ctx.db.query<{ id: string; name: string; kind: string }>(`SELECT id, name, kind FROM cloud_connectors WHERE org_id = $1 ORDER BY name`, [orgId]);
+  async function listConnectors(orgId: string, projectId: string): Promise<Array<{ id: string; name: string; kind: string }>> {
+    const rows = await ctx.db.query<{ id: string; name: string; kind: string }>(`SELECT id, name, kind FROM cloud_connectors WHERE org_id = $1 AND project_id = $2 ORDER BY name`, [orgId, projectId]);
     return rows.map((r) => ({ id: r.id, name: r.name, kind: r.kind }));
   }
 

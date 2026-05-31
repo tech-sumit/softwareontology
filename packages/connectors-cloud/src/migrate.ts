@@ -6,6 +6,7 @@ const MIGRATIONS = [
     kind text NOT NULL, config jsonb NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(), UNIQUE (org_id, name)
   )`,
+  `ALTER TABLE cloud_connectors ADD COLUMN IF NOT EXISTS project_id text NOT NULL DEFAULT 'project_default'`,
 ];
 
 export async function runMigrations(db: Db): Promise<void> {
