@@ -16,6 +16,7 @@ const MIGRATIONS = [
      duck_type text NOT NULL,
      PRIMARY KEY (dataset_id, ordinal)
    )`,
+  `ALTER TABLE datasets ADD COLUMN IF NOT EXISTS project_id text NOT NULL DEFAULT 'project_default'`,
 ];
 
 export async function runMigrations(db: Db): Promise<void> {

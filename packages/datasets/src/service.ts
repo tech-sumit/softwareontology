@@ -16,6 +16,7 @@ export interface DatasetMeta {
 export function createDatasetService(ctx: ModuleContext) {
   async function ingest(
     orgId: string,
+    projectId: string,
     name: string,
     format: 'csv' | 'parquet',
     bytes: Buffer,
@@ -41,8 +42,8 @@ export function createDatasetService(ctx: ModuleContext) {
       const rowCount = Number(counted[0]?.n ?? 0);
 
       await ctx.db.query(
-        `INSERT INTO datasets(id,org_id,name,object_key,row_count) VALUES ($1,$2,$3,$4,$5)`,
-        [id, orgId, name, objectKey, rowCount],
+        `INSERT INTO datasets(id,org_id,project_id,name,object_key,row_count) VALUES ($1,$2,$3,$4,$5,$6)`,
+        [id, orgId, projectId, name, objectKey, rowCount],
       );
       for (let i = 0; i < columns.length; i++) {
         const col = columns[i]!;
@@ -58,10 +59,10 @@ export function createDatasetService(ctx: ModuleContext) {
     }
   }
 
-  async function list(orgId: string): Promise<DatasetMeta[]> {
+  async function list(orgId: string, projectId: string): Promise<DatasetMeta[]> {
     const rows = await ctx.db.query<{ id: string; name: string; object_key: string; row_count: number }>(
-      `SELECT id, name, object_key, row_count FROM datasets WHERE org_id = $1 ORDER BY created_at DESC`,
-      [orgId],
+      `SELECT id, name, object_key, row_count FROM datasets WHERE org_id = $1 AND project_id = $2 ORDER BY created_at DESC`,
+      [orgId, projectId],
     );
     const out: DatasetMeta[] = [];
     for (const r of rows) out.push({ id: r.id, name: r.name, objectKey: r.object_key, rowCount: r.row_count, columns: await columnsFor(r.id) });

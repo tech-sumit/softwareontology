@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import type { DatasetAccessPolicy } from '@so/sdk';
+import { activeProjectId } from '@so/sdk';
 import { requirePermission } from '@so/auth';
 import { createDatasetService } from './service.js';
 
@@ -22,12 +23,12 @@ export const datasetRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'empty upload body' });
     }
     const orgId = req.user!.orgId;
-    const dataset = await svc.ingest(orgId, q.name, format, body);
+    const dataset = await svc.ingest(orgId, activeProjectId(req.headers), q.name, format, body);
     return reply.code(201).send({ dataset });
   });
 
   fastify.get('/', { preHandler: requirePermission('datasets:read') }, async (req) => {
-    return { datasets: await svc.list(req.user!.orgId) };
+    return { datasets: await svc.list(req.user!.orgId, activeProjectId(req.headers)) };
   });
 
   fastify.get('/:id', { preHandler: requirePermission('datasets:read') }, async (req, reply) => {
