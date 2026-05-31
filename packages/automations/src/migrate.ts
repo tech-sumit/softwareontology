@@ -11,6 +11,7 @@ const MIGRATIONS = [
     created_at timestamptz NOT NULL DEFAULT now(),
     UNIQUE (org_id, name)
   )`,
+  `ALTER TABLE automations ADD COLUMN IF NOT EXISTS project_id text NOT NULL DEFAULT 'project_default'`,
 ];
 
 export async function runMigrations(db: Db): Promise<void> {
