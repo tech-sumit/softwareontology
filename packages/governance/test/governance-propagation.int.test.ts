@@ -55,6 +55,7 @@ describe('governance: propagation + ontology enforcement', () => {
 
   it('enforces clearance on ontology object resolution', async () => {
     await cleanMarking(server.kernel.ctx.db, 'SECRET');
+    await server.kernel.ctx.db.query(`DELETE FROM object_properties WHERE object_type_id IN (SELECT id FROM object_types WHERE api_name='SecObj')`);
     await server.kernel.ctx.db.query(`DELETE FROM object_types WHERE api_name='SecObj'`);
     const login = await server.app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'admin@example.com', password: 'admin' } });
     const a = { cookie: cookieFrom(login.headers['set-cookie']) };
