@@ -11,16 +11,16 @@ export interface AirflowConnectorInput { name: string; provider: string; conn: s
 export function createAirflowConnectorService(ctx: ModuleContext) {
   function runnerUrl(): string { return ctx.config.get('CONNECTOR_RUNNER_URL') ?? 'http://localhost:8077'; }
 
-  async function createConnector(orgId: string, input: AirflowConnectorInput): Promise<string> {
+  async function createConnector(orgId: string, projectId: string, input: AirflowConnectorInput): Promise<string> {
     if (!NAME_RE.test(input.name)) throw new Error('invalid connector name');
     if (!input.provider || !input.conn || !input.query) throw new Error('provider, conn, query required');
     const id = randomUUID();
-    await ctx.db.query(`INSERT INTO airflow_connectors(id,org_id,name,provider,conn,query) VALUES ($1,$2,$3,$4,$5,$6)`, [id, orgId, input.name, input.provider, input.conn, input.query]);
+    await ctx.db.query(`INSERT INTO airflow_connectors(id,org_id,project_id,name,provider,conn,query) VALUES ($1,$2,$3,$4,$5,$6,$7)`, [id, orgId, projectId, input.name, input.provider, input.conn, input.query]);
     return id;
   }
 
-  async function listConnectors(orgId: string): Promise<Array<{ id: string; name: string; provider: string }>> {
-    const rows = await ctx.db.query<{ id: string; name: string; provider: string }>(`SELECT id, name, provider FROM airflow_connectors WHERE org_id = $1 ORDER BY name`, [orgId]);
+  async function listConnectors(orgId: string, projectId: string): Promise<Array<{ id: string; name: string; provider: string }>> {
+    const rows = await ctx.db.query<{ id: string; name: string; provider: string }>(`SELECT id, name, provider FROM airflow_connectors WHERE org_id = $1 AND project_id = $2 ORDER BY name`, [orgId, projectId]);
     return rows.map((r) => ({ id: r.id, name: r.name, provider: r.provider }));
   }
 

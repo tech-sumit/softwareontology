@@ -6,6 +6,7 @@ const MIGRATIONS = [
     provider text NOT NULL, conn text NOT NULL, query text NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(), UNIQUE (org_id, name)
   )`,
+  `ALTER TABLE airflow_connectors ADD COLUMN IF NOT EXISTS project_id text NOT NULL DEFAULT 'project_default'`,
 ];
 
 export async function runMigrations(db: Db): Promise<void> {
