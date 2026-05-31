@@ -1,25 +1,10 @@
 // Run the full API for local UI development: `pnpm dev:api`
+// Uses the shared production module list (modules.mjs) so dev never drifts from
+// the container server/worker + the e2e warm-up.
 import { createServer, createConfig } from '@so/server';
 import { createLogger } from '@so/observability';
-import auth from '@so/auth';
-import datasets from '@so/datasets';
-import ontology from '@so/ontology';
-import actions from '@so/actions';
-import admin from '@so/admin';
-import connectorsDb from '@so/connectors-db';
-import pipelines from '@so/pipelines';
-import catalog from '@so/catalog';
-import lineage from '@so/lineage';
-import dashboards from '@so/dashboards';
-import governance from '@so/governance';
-import aip from '@so/aip';
-import automations from '@so/automations';
-import apps from '@so/apps';
+import { modules } from './modules.mjs';
 
-const server = await createServer({
-  modules: [auth, datasets, ontology, actions, admin, connectorsDb, pipelines, catalog, lineage, dashboards, governance, aip, automations, apps],
-  logger: createLogger(),
-  config: createConfig(),
-});
+const server = await createServer({ modules, logger: createLogger(), config: createConfig() });
 const addr = await server.start(3000);
 createLogger().info(`API listening at ${addr}`);

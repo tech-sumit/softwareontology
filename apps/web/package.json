@@ -24,6 +24,7 @@
     "@so/server": "workspace:*",
     "@so/observability": "workspace:*",
     "@so/auth": "workspace:*",
+    "@so/projects": "workspace:*",
     "@so/datasets": "workspace:*",
     "@so/ontology": "workspace:*",
     "@so/actions": "workspace:*",

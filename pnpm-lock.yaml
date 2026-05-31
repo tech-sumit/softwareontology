@@ -93,6 +93,9 @@ importers:
       '@so/pipelines':
         specifier: workspace:*
         version: link:../../packages/pipelines
+      '@so/projects':
+        specifier: workspace:*
+        version: link:../../packages/projects
       '@so/server':
         specifier: workspace:*
         version: link:../../packages/server

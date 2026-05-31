@@ -1,6 +1,7 @@
 // Shared module list for the production server + worker entrypoints.
 // The kernel loads these in dependency order, so array order is not significant.
 import auth from '@so/auth';
+import projects from '@so/projects';
 import datasets from '@so/datasets';
 import ontology from '@so/ontology';
 import actions from '@so/actions';
@@ -20,6 +21,7 @@ import openapi from '@so/openapi';
 
 export const modules = [
   auth,
+  projects,
   datasets,
   ontology,
   actions,
