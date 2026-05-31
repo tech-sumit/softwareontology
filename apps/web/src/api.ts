@@ -41,4 +41,11 @@ export const api = {
   createApp: (name: string, definition: AppDefinition) => req<{ id: string }>('POST', '/apps', { name, definition }),
   updateApp: (id: string, body: { name?: string; definition?: AppDefinition }) => req<{ ok: boolean }>('PUT', `/apps/${id}`, body),
   deleteApp: (id: string) => req<{ ok: boolean }>('DELETE', `/apps/${id}`),
+  listDatasets: () => req<{ datasets: Array<{ id: string; name: string }> }>('GET', '/datasets'),
+  listRoles: () => req<{ roles: Array<{ id: string; name: string }> }>('GET', '/admin/roles'),
+  listMarkings: () => req<{ markings: Array<{ id: string; name: string }> }>('GET', '/governance/markings'),
+  createMarking: (name: string) => req<{ id: string }>('POST', '/governance/markings', { name }),
+  applyMarking: (markingId: string, datasetId: string) => req<{ ok: boolean }>('POST', `/governance/markings/${markingId}/datasets/${datasetId}`),
+  grantMarking: (markingId: string, roleId: string) => req<{ ok: boolean }>('POST', `/governance/markings/${markingId}/roles/${roleId}`),
+  myClearances: () => req<{ clearances: Array<{ id: string; name: string }> }>('GET', '/governance/me/clearances'),
 };

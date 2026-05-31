@@ -7,8 +7,9 @@ import { AdminView } from './views/AdminView';
 import { DashboardsView } from './views/DashboardsView';
 import { AskView } from './views/AskView';
 import { AppsView } from './views/AppsView';
+import { GovernanceView } from './views/GovernanceView';
 
-type View = 'setup' | 'explorer' | 'admin' | 'dashboards' | 'ask' | 'apps';
+type View = 'setup' | 'explorer' | 'admin' | 'dashboards' | 'ask' | 'apps' | 'governance';
 
 export function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -37,6 +38,7 @@ export function App() {
         <div className={`tab ${view === 'dashboards' ? 'active' : ''}`} onClick={() => setView('dashboards')}>Dashboards</div>
         <div className={`tab ${view === 'ask' ? 'active' : ''}`} onClick={() => setView('ask')}>Ask</div>
         <div className={`tab ${view === 'apps' ? 'active' : ''}`} onClick={() => setView('apps')}>Apps</div>
+        <div className={`tab ${view === 'governance' ? 'active' : ''}`} onClick={() => setView('governance')}>Governance</div>
       </div>
       <div className="wrap">
         {view === 'setup' ? <SetupView onModeled={() => { setRefreshKey((k) => k + 1); setView('explorer'); }} />
@@ -44,6 +46,7 @@ export function App() {
           : view === 'dashboards' ? <DashboardsView />
           : view === 'ask' ? <AskView />
           : view === 'apps' ? <AppsView />
+          : view === 'governance' ? <GovernanceView />
           : <ExplorerView key={refreshKey} />}
       </div>
     </>

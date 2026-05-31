@@ -3,7 +3,7 @@ import type { ModuleContext } from '@so/sdk';
 import { hashPassword } from '@so/auth';
 
 export interface UserSummary { id: string; email: string; roles: string[]; }
-export interface RoleSummary { name: string; permissions: string[]; }
+export interface RoleSummary { id: string; name: string; permissions: string[]; }
 
 export function createAdminService(ctx: ModuleContext) {
   async function listUsers(orgId: string): Promise<UserSummary[]> {
@@ -43,7 +43,7 @@ export function createAdminService(ctx: ModuleContext) {
     const out: RoleSummary[] = [];
     for (const r of roles) {
       const perms = await ctx.db.query<{ permission_key: string }>(`SELECT permission_key FROM role_permissions WHERE role_id = $1`, [r.id]);
-      out.push({ name: r.name, permissions: perms.map((p) => p.permission_key) });
+      out.push({ id: r.id, name: r.name, permissions: perms.map((p) => p.permission_key) });
     }
     return out;
   }
