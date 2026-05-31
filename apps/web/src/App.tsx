@@ -14,7 +14,9 @@ import { DataView } from './views/DataView';
 import { PipelinesView } from './views/PipelinesView';
 import { ConnectorsView } from './views/ConnectorsView';
 import { AutomationsView } from './views/AutomationsView';
-import { PlaceholderView } from './views/PlaceholderView';
+import { LineageView } from './views/LineageView';
+import { CatalogView } from './views/CatalogView';
+import { ApiSdkView } from './views/ApiSdkView';
 
 const GROUPS: NavGroup[] = [
   { label: 'PROJECT', items: [
@@ -63,9 +65,9 @@ export function App() {
       case 'pipelines': return <PipelinesView key={refreshKey} />;
       case 'connectors': return <ConnectorsView key={refreshKey} />;
       case 'automations': return <AutomationsView key={refreshKey} />;
-      case 'lineage': return <PlaceholderView title="Lineage" />;
-      case 'catalog': return <PlaceholderView title="Catalog" />;
-      case 'apisdk': return <PlaceholderView title="API & SDK" />;
+      case 'lineage': return <LineageView key={refreshKey} />;
+      case 'catalog': return <CatalogView />;
+      case 'apisdk': return <ApiSdkView />;
       default: return <ExplorerView key={refreshKey} />;
     }
   })();

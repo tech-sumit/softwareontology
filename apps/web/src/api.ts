@@ -3,6 +3,10 @@ export interface ObjectTypeSummary { apiName: string; primaryKey: string; }
 export interface PropertyMeta { apiName: string; type: string; }
 export interface AppWidget { id: string; type: string; title?: string; config: Record<string, unknown>; }
 export interface AppDefinition { widgets: AppWidget[]; }
+export interface ObjectTypeLineage { objectType: string; backingDataset: string | null; actions: string[]; links: string[]; }
+export interface AuditEntry { actor: string | null; action: string; objectType: string; primaryKey: string | null; createdAt: string; }
+export interface SearchHit { kind: string; name: string; }
+export interface OpenApiSpec { paths: Record<string, Record<string, unknown>>; [key: string]: unknown; }
 
 let currentProjectId = 'project_default';
 export function setActiveProject(id: string): void { currentProjectId = id; }
@@ -78,4 +82,11 @@ export const api = {
   // automations: create { name, triggerAction, thenAction, thenEdits? }
   listAutomations: () => req<{ automations: Array<{ id: string; name: string; triggerAction: string; thenAction: string }> }>('GET', '/automations'),
   createAutomation: (body: { name: string; triggerAction: string; thenAction: string; thenEdits?: Record<string, unknown> }) => req<{ id: string }>('POST', '/automations', body),
+  // lineage: GET /lineage/object-types/:apiName → { lineage: { objectType, backingDataset, actions, links } }
+  getLineage: (objectType: string) => req<{ lineage: ObjectTypeLineage }>('GET', `/lineage/object-types/${encodeURIComponent(objectType)}`),
+  // catalog: audit → { entries: AuditEntry[] }; search → { hits: SearchHit[] }
+  catalogAudit: () => req<{ entries: AuditEntry[] }>('GET', '/catalog/audit'),
+  catalogSearch: (q: string) => req<{ hits: SearchHit[] }>('GET', `/catalog/search?q=${encodeURIComponent(q)}`),
+  // openapi: full OpenAPI 3.1 doc keyed by path → { method: opObj }
+  openapiSpec: () => req<OpenApiSpec>('GET', '/openapi/spec'),
 };
