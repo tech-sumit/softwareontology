@@ -42,7 +42,7 @@ export interface QueryEngine {
 
 export type ContributionSlot =
   | 'objectTypes' | 'linkTypes' | 'actions' | 'functions'
-  | 'connectors' | 'jobs' | 'permissions' | 'schedules' | 'datasetAccessPolicies';
+  | 'connectors' | 'jobs' | 'permissions' | 'schedules' | 'datasetAccessPolicies' | 'datasetDerivationHooks';
 
 export interface Registry {
   get<T = unknown>(slot: ContributionSlot): T[];
@@ -52,6 +52,7 @@ export type JobHandler = (ctx: ModuleContext, payload: unknown) => Promise<void>
 export interface JobDefinition { name: string; handler: JobHandler; }
 export interface ScheduleDefinition { name: string; cron: string; }
 export interface DatasetAccessPolicy { check(ctx: ModuleContext, userId: string, datasetId: string): Promise<boolean>; }
+export interface DatasetDerivationHook { onDerive(ctx: ModuleContext, outputDatasetId: string, inputDatasetIds: string[]): Promise<void>; }
 
 export interface Contributions {
   objectTypes?: unknown[];   // typed by @so/ontology (Plan 6)
@@ -62,6 +63,7 @@ export interface Contributions {
   jobs?: JobDefinition[];
   schedules?: ScheduleDefinition[];
   datasetAccessPolicies?: DatasetAccessPolicy[];
+  datasetDerivationHooks?: DatasetDerivationHook[];
   permissions?: string[];
   apiRoutes?: unknown;       // Fastify plugin — typed by @so/server (Plan 3)
   ui?: unknown;              // React manifest — typed by @so/ui-shell (Plan 8)

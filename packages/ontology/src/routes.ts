@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
+import type { DatasetAccessPolicy } from '@so/sdk';
 import { requirePermission, hasPermission } from '@so/auth';
 import { createOntologyService, type ObjectTypeInput } from './service.js';
 
@@ -35,6 +36,12 @@ export const ontologyRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const ot = await svc.getObjectType(req.user!.orgId, apiName);
       if (!ot) return reply.code(404).send({ error: 'not found' });
+      const policies = fastify.ctx.registry.get<DatasetAccessPolicy>('datasetAccessPolicies');
+      for (const policy of policies) {
+        if (!(await policy.check(fastify.ctx, req.user!.id, ot.datasetId))) {
+          return reply.code(403).send({ error: 'access denied: insufficient clearance' });
+        }
+      }
       const perms = req.user!.permissions;
       const masked = ot.properties.filter((p) => p.requiredPermission && !hasPermission(perms, p.requiredPermission)).map((p) => p.apiName);
       const objects = await svc.resolveObjects(req.user!.orgId, apiName, { limit: Number(q.limit ?? 100), offset: Number(q.offset ?? 0) });

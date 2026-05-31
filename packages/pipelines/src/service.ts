@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { CronExpressionParser } from 'cron-parser';
-import type { ModuleContext } from '@so/sdk';
+import type { ModuleContext, DatasetDerivationHook } from '@so/sdk';
 
 const NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
@@ -88,8 +88,8 @@ export function createPipelineService(ctx: ModuleContext) {
           if (!pipe.watermark_column) throw new Error('incremental pipeline missing watermark column');
           const inputName = pipe.inputs[0]!;
           if (!NAME_RE.test(inputName)) throw new Error(`invalid input name: ${inputName}`);
-          const ds = await ctx.db.query<{ object_key: string }>(
-            `SELECT object_key FROM datasets WHERE org_id = $1 AND name = $2 ORDER BY created_at DESC LIMIT 1`, [orgId, inputName],
+          const ds = await ctx.db.query<{ id: string; object_key: string }>(
+            `SELECT id, object_key FROM datasets WHERE org_id = $1 AND name = $2 ORDER BY created_at DESC LIMIT 1`, [orgId, inputName],
           );
           if (!ds[0]) throw new Error(`input dataset not found: ${inputName}`);
           const inUrl = ctx.objectStore.getObjectUrl(ds[0].object_key);
@@ -116,16 +116,20 @@ export function createPipelineService(ctx: ModuleContext) {
           await session.all(`COPY _delta TO '${partUrl}' (FORMAT parquet)`);
           await ctx.db.query(`UPDATE datasets SET row_count = row_count + $1 WHERE id = $2`, [dCount, outId]);
           if (newMax != null) await ctx.db.query(`UPDATE pipelines SET last_watermark = $1 WHERE id = $2`, [newMax, pipelineId]);
+          const incHooks = ctx.registry.get<DatasetDerivationHook>('datasetDerivationHooks');
+          for (const h of incHooks) await h.onDerive(ctx, outId, [ds[0].id]);
           await ctx.db.query(`UPDATE pipeline_runs SET status='success', dataset_id=$1, row_count=$2, finished_at=now() WHERE id=$3`, [outId, dCount, runId]);
           return { datasetId: outId, rowCount: dCount, runId };
         }
+        const inputDatasetIds: string[] = [];
         for (const inputName of pipe.inputs) {
           if (!NAME_RE.test(inputName)) throw new Error(`invalid input name: ${inputName}`);
-          const ds = await ctx.db.query<{ object_key: string }>(
-            `SELECT object_key FROM datasets WHERE org_id = $1 AND name = $2 ORDER BY created_at DESC LIMIT 1`,
+          const ds = await ctx.db.query<{ id: string; object_key: string }>(
+            `SELECT id, object_key FROM datasets WHERE org_id = $1 AND name = $2 ORDER BY created_at DESC LIMIT 1`,
             [orgId, inputName],
           );
           if (!ds[0]) throw new Error(`input dataset not found: ${inputName}`);
+          inputDatasetIds.push(ds[0].id);
           const url = ctx.objectStore.getObjectUrl(ds[0].object_key);
           await session.all(`CREATE OR REPLACE VIEW ${inputName} AS SELECT * FROM read_parquet('${url}')`);
         }
@@ -162,6 +166,8 @@ export function createPipelineService(ctx: ModuleContext) {
           const col = described[i]!;
           await ctx.db.query(`INSERT INTO dataset_columns(dataset_id,ordinal,name,duck_type) VALUES ($1,$2,$3,$4)`, [datasetId, i, String(col.column_name), String(col.column_type)]);
         }
+        const hooks = ctx.registry.get<DatasetDerivationHook>('datasetDerivationHooks');
+        for (const h of hooks) await h.onDerive(ctx, datasetId, inputDatasetIds);
         await ctx.db.query(`UPDATE pipeline_runs SET status='success', dataset_id=$1, row_count=$2, finished_at=now() WHERE id=$3`, [datasetId, rowCount, runId]);
         return { datasetId, rowCount, runId };
       } finally {

@@ -10,6 +10,7 @@ export default defineModule({
     apiRoutes: governanceRoutes,
     permissions: ['governance:read', 'governance:manage'],
     datasetAccessPolicies: [{ check: (ctx, userId, datasetId) => createGovernanceService(ctx).canReadDataset(userId, datasetId) }],
+    datasetDerivationHooks: [{ onDerive: (ctx, outputDatasetId, inputDatasetIds) => createGovernanceService(ctx).propagateMarkings(inputDatasetIds, outputDatasetId) }],
   },
   async onInstall(ctx) { await runMigrations(ctx.db); },
 });
