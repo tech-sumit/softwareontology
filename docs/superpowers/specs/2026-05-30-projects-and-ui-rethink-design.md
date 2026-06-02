@@ -17,12 +17,15 @@ Add a **Projects** layer (multiple projects per account/org) and rethink the web
 - **Shared / org-wide** (no `project_id`): ontology (object_types/link_types/actions/functions), governance markings, catalog, lineage, AIP, openapi, admin (users/roles).
 - Object types stay **shared** but are backed by project-scoped datasets. The Explorer's default view is shared; **filtering the Explorer to object types whose backing dataset is in the active project** is a refinement within the Ontology-surface plan.
 
-## UI / information architecture
-- **Shell:** top bar (logo · **Project switcher** + "New project" · user · sign out) + **left sidebar** + main panel.
-- **Sidebar groups:**
-  - **PROJECT** *(scoped to the active project):* Data · Pipelines · Connectors · Apps · Automations
-  - **PLATFORM** *(shared):* Ontology/Explorer · Lineage · Catalog · Governance · API & SDK · Ask · Admin
-- **New surfaces to build** (backend exists, no UI today): **Data** browser (datasets list/preview/upload) · **Pipelines** (DAG builder + runs/build-health + schedule + data-quality expectations) · **Connectors** (create + sync, all four kinds) · **Lineage** (object-type → dataset/actions/links view) · **Catalog** (audit log + global search) · **API & SDK** (OpenAPI endpoint browser + SDK download/usage). **Existing views move into the shell:** Explorer, Apps, Dashboards, Ask, Admin, Governance, Upload&model.
+## UI / information architecture — REVISED 2026-05-30 (Layout A "Workspace rail")
+The first shell (top tabs → left sidebar with PROJECT/PLATFORM groups) was just the old views reparented; it mixed shared + project things. **Replaced** with a proper two-context model (chosen from mockups; "Layout A"):
+
+- **Workspace rail** (far-left, ~64px): logo · **⌂ Console** · one **project avatar** per project (colored initials, the active one outlined) · **＋ New project** · user avatar. The rail switches *context*.
+- **Two contexts:**
+  - **Project context** *(the default on load — the window opens inside a project)*: a project sidebar (header `📁 <Project>` + **Overview · Data · Upload & model · Pipelines · Connectors · Apps · Automations**) + main panel. **Overview** is a project Home dashboard (dataset/pipeline/connector/app counts + recent pipeline runs + quick actions). Everything here is project-scoped.
+  - **Console context** *(shared)*: selecting ⌂ Console shows the **Console dashboard** — **Projects** cards (per-project quick stats → click to enter) + **Shared · Platform** tiles (**Ontology · Lineage · Catalog · Dashboards · Governance · API & SDK · Ask · Admin**). A Console sidebar lets you jump between the dashboard + those shared surfaces. Shared assets never appear inside a project.
+- **Visual language:** light content area, dark rail/sidebar, white cards w/ subtle shadow, stat tiles, status badges, asset/project tiles — a genuine design pass (mockups approved), not relocated panels.
+- **Surfaces** (backends all exist + are wired): project — Data, Pipelines, Connectors, Apps, Automations, Upload&model; shared — Ontology Explorer, Lineage, Catalog, Dashboards, Governance, API & SDK, Ask, Admin. They render inside the new chrome.
 
 ## Decomposition (each: plan → branch → subagent → verify gated-green → merge)
 1. **`@so/projects`** — table + Default bootstrap + CRUD API + active-project helper (`X-Project` → id).
