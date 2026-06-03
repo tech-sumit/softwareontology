@@ -2,7 +2,7 @@
 
 An open-source, self-hostable **Palantir Foundry alternative** built around a semantic Ontology layer. Modular monolith, TypeScript end-to-end (Fastify · React · Postgres · S3-API object store / MinIO · in-process DuckDB), with a `@so/kernel` + `@so/sdk` module framework.
 
-**Status:** all four spec phases plus the prioritized Foundry-gap items (connectivity, compute, ontology depth, app builder, SSO, SDK) and **production-grade pipelines** (build health, data-quality gates, scheduling) are built, tested, and demoable. As of this writing: **44 plans merged, 110 unit/integration + component tests + a full E2E suite, 26 packages + the web app.** The web UI was reorganized into a Foundry-style shell (left sidebar + **project switcher**) that surfaces every capability. Run `pnpm test` to verify; `pnpm dev:api` + `pnpm dev:web` to demo (sign in `admin@example.com` / `admin`); `docker compose up -d --build` for the full container stack.
+**Status:** all four spec phases plus the prioritized Foundry-gap items (connectivity, compute, ontology depth, app builder, SSO, SDK) and **production-grade pipelines** (build health, data-quality gates, scheduling) are built, tested, and demoable. As of this writing: **46 plans merged, 111 unit/integration + component tests + a full E2E suite, 26 packages + the web app.** The web UI is a Foundry-style **workspace shell** — a project-avatar rail + ⌂ Console, a context sidebar, a slim breadcrumb/search top bar, and a rich project Home — that opens *inside a project* and keeps shared assets on the Console. Run `pnpm test` to verify; `pnpm dev:api` + `pnpm dev:web` to demo (sign in `admin@example.com` / `admin`); `docker compose up -d --build` for the full container stack.
 
 ---
 
@@ -47,12 +47,12 @@ Host endpoints: `GET /healthz`, `GET /readyz`, and the SPA at `/` (when `UI_DIST
 
 ## Web app (`apps/web`)
 
-Vite + React, organized as a **Foundry-style shell**: a top bar with a **project switcher** (+ New project), a **left sidebar** grouping all surfaces, and a main panel. The API client sends the active project as an `X-Project` header on every request.
+Vite + React, a **workspace shell** ("Layout A hybrid"): a far-left **rail** (logo · ⌂ Console · a colored avatar per project · ＋ New · user), a **context sidebar**, a slim **top bar** (breadcrumb · global search · sign-out), and the main panel. The app **opens inside a project** (the default); the API client sends the active project as an `X-Project` header on every request. Two contexts:
 
-- **PROJECT** group (project-scoped): **Data** (datasets list + preview) · **Upload & model** · **Pipelines** (list · create single-SQL or multi-step DAG + data-quality expectations · run · build-health runs · cron schedule) · **Connectors** (DB / S3 / REST / Airflow — create + sync) · **Apps** (low-code widget builder → run) · **Automations** (event-driven follow-up actions)
-- **PLATFORM** group (shared): **Ontology Explorer** (object types · resolved objects · detail + actions) · **Lineage** (object type → dataset/actions/links) · **Catalog** (global search + audit log) · **Dashboards** (group-by chart) · **Governance** (markings · apply · grant clearance · view clearances) · **API & SDK** (browse OpenAPI endpoints + typed-SDK generation) · **Ask** (AIP) · **Admin** (users/roles)
+- **Project context** *(scoped)* — sidebar: **Overview** (rich Home: KPI cards · recent-pipeline-runs activity feed · recent datasets) · **Data** (list + preview) · **Upload & model** · **Pipelines** (single-SQL or multi-step DAG + data-quality expectations · run · build-health runs · cron schedule) · **Connectors** (DB/S3/REST/Airflow create + sync) · **Apps** (low-code widget builder → run) · **Automations**.
+- **Console context** *(shared)* — a dashboard of **project cards** + **platform tiles**, with a sidebar: **Ontology Explorer · Lineage · Catalog · Dashboards · Governance · API & SDK · Ask · Admin**. Shared assets never appear inside a project.
 
-Pure components unit-tested under jsdom (LoginForm, ObjectsTable, BarList, UsersTable, AppRuntime, MarkingsTable, Sidebar, ProjectSwitcher, RunsTable, ConnectorList, EndpointList). Served by the API via `UI_DIST`; all modules (incl. `projects`) are wired into the dev server (`dev-server.mjs` imports the shared `modules.mjs`) + the container.
+Premium design system (dark rail/sidebar, light content, cards/tiles/badges/stat-KPIs). Pure components unit-tested under jsdom (LoginForm, ObjectsTable, BarList, UsersTable, AppRuntime, MarkingsTable, WorkspaceRail, ContextSidebar, TopBar, RunsTable, ConnectorList, EndpointList). Served by the API via `UI_DIST`; all modules (incl. `projects`) are wired into the dev server (`dev-server.mjs` imports the shared `modules.mjs`) + the container.
 
 ## Testing
 
