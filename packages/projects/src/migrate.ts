@@ -9,6 +9,7 @@ const MIGRATIONS = [
     UNIQUE (org_id, name)
   )`,
   `INSERT INTO projects(id, org_id, name) VALUES ('project_default', 'org_default', 'Default') ON CONFLICT DO NOTHING`,
+  `ALTER TABLE projects ADD COLUMN IF NOT EXISTS description text`,
 ];
 
 export async function runMigrations(db: Db): Promise<void> {

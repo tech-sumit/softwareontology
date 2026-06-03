@@ -6,9 +6,9 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
   const svc = createProjectService(fastify.ctx);
 
   fastify.post('/', { preHandler: requirePermission('projects:write') }, async (req, reply) => {
-    const b = req.body as { name?: string };
+    const b = req.body as { name?: string; description?: string };
     if (!b?.name) return reply.code(400).send({ error: 'name required' });
-    try { return reply.code(201).send({ id: await svc.createProject(req.user!.orgId, b.name) }); }
+    try { return reply.code(201).send({ id: await svc.createProject(req.user!.orgId, b.name, b.description) }); }
     catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
   });
 
