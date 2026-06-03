@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, setActiveProject, type User } from './api';
 import { LoginForm } from './components/LoginForm';
+import { CreateProjectModal } from './components/CreateProjectModal';
 import { WorkspaceRail, colorFor } from './components/WorkspaceRail';
 import { ContextSidebar, type SideItem } from './components/ContextSidebar';
 import { TopBar } from './components/TopBar';
@@ -36,8 +37,9 @@ const labelOf = (items: SideItem[], id: string): string => items.find((i) => i.i
 export function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loginErr, setLoginErr] = useState('');
-  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
+  const [projects, setProjects] = useState<Array<{ id: string; name: string; description?: string }>>([]);
   const [project, setProject] = useState('project_default');
+  const [showCreate, setShowCreate] = useState(false);
   const [area, setArea] = useState<'console' | 'project'>('project');
   const [view, setView] = useState('overview');
   const [rk, setRk] = useState(0);
@@ -51,7 +53,7 @@ export function App() {
   function openProject(id: string) { setActiveProject(id); setProject(id); setArea('project'); setView('overview'); setRk((k) => k + 1); }
   function openConsole() { setArea('console'); setView('home'); }
   function openSurface(id: string) { setArea('console'); setView(id); }
-  async function newProject() { const n = window.prompt('New project name'); if (!n || !n.trim()) return; try { const { id } = await api.createProject(n.trim()); setProjects((await api.listProjects()).projects); openProject(id); } catch { /* ignore */ } }
+  function newProject() { setShowCreate(true); }
 
   if (!user) return <div className="wrap"><LoginForm onSubmit={doLogin} error={loginErr} onSso={() => { window.location.href = '/api/auth/oidc/login'; }} /></div>;
 
@@ -95,6 +97,7 @@ export function App() {
         <TopBar breadcrumb={breadcrumb} userEmail={user.email} onSignOut={doLogout} onSearch={(q) => { setArea('console'); setView('catalog'); setSearchQuery(q); }} />
         <div className="content">{surface}</div>
       </div>
+      {showCreate ? <CreateProjectModal onClose={() => setShowCreate(false)} onCreate={async (name, description) => { try { const { id } = await api.createProject(name, description); setProjects((await api.listProjects()).projects); setShowCreate(false); openProject(id); } catch { setShowCreate(false); } }} /> : null}
     </div>
   );
 }

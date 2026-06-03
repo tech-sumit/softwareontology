@@ -32,6 +32,18 @@ export function ProjectOverview({ projectName, onGo }: { projectName: string; on
     <>
       <div className="crumb">Console / {projectName}</div>
       <div className="hero"><div><h1 className="h1">{projectName}</h1><div className="sub" style={{ margin: 0 }}>Project workspace</div></div></div>
+      {c.datasets === 0 && c.pipelines === 0 && c.apps === 0 ? (
+        <div className="card pad" style={{ marginBottom: 18 }}>
+          <h3>Get started in {projectName}</h3>
+          <p className="muted">This project is empty. A typical flow:</p>
+          <div className="grid tiles">
+            <div className="card tile" onClick={() => onGo('setup')}><div className="ti">↥</div><div className="tn">1 · Upload &amp; model</div><div className="td">Upload a CSV and turn it into an object type.</div></div>
+            <div className="card tile" onClick={() => onGo('pipelines')}><div className="ti">⑂</div><div className="tn">2 · Build a pipeline</div><div className="td">Transform data with SQL or a multi-step DAG.</div></div>
+            <div className="card tile" onClick={() => onGo('connectors')}><div className="ti">⇄</div><div className="tn">3 · Connect a source</div><div className="td">Pull from Postgres, S3, REST, or Airflow.</div></div>
+            <div className="card tile" onClick={() => onGo('apps')}><div className="ti">▥</div><div className="tn">4 · Build an app</div><div className="td">Compose widgets over your objects.</div></div>
+          </div>
+        </div>
+      ) : null}
       <div className="grid k4">
         {([['datasets', 'Datasets', 'data'], ['pipelines', 'Pipelines', 'pipelines'], ['connectors', 'Connectors', 'connectors'], ['apps', 'Apps', 'apps']] as const).map(([key, label, go]) => (
           <div key={key} className="card kpi" style={{ cursor: 'pointer' }} onClick={() => onGo(go)}><div className="n">{c[key]}</div><div className="l">{label}</div></div>
