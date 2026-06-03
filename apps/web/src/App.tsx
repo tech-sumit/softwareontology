@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import { api, setActiveProject, type User } from './api';
 import { LoginForm } from './components/LoginForm';
-import { Sidebar, type NavGroup } from './components/Sidebar';
-import { ProjectSwitcher } from './components/ProjectSwitcher';
+import { WorkspaceRail, colorFor } from './components/WorkspaceRail';
+import { ContextSidebar, type SideItem } from './components/ContextSidebar';
+import { TopBar } from './components/TopBar';
+import { ConsoleHome } from './views/ConsoleHome';
+import { ProjectOverview } from './views/ProjectOverview';
 import { SetupView } from './views/SetupView';
 import { ExplorerView } from './views/ExplorerView';
 import { AdminView } from './views/AdminView';
@@ -18,72 +21,76 @@ import { LineageView } from './views/LineageView';
 import { CatalogView } from './views/CatalogView';
 import { ApiSdkView } from './views/ApiSdkView';
 
-const GROUPS: NavGroup[] = [
-  { label: 'PROJECT', items: [
-    { id: 'data', label: 'Data' }, { id: 'setup', label: 'Upload & model' }, { id: 'pipelines', label: 'Pipelines' },
-    { id: 'connectors', label: 'Connectors' }, { id: 'apps', label: 'Apps' }, { id: 'automations', label: 'Automations' },
-  ] },
-  { label: 'PLATFORM', items: [
-    { id: 'explorer', label: 'Ontology Explorer' }, { id: 'lineage', label: 'Lineage' }, { id: 'catalog', label: 'Catalog' },
-    { id: 'dashboards', label: 'Dashboards' }, { id: 'governance', label: 'Governance' }, { id: 'apisdk', label: 'API & SDK' },
-    { id: 'ask', label: 'Ask' }, { id: 'admin', label: 'Admin' },
-  ] },
+const PROJECT_ITEMS: SideItem[] = [
+  { id: 'overview', label: 'Overview', icon: '▦' }, { id: 'data', label: 'Data', icon: '▤' }, { id: 'setup', label: 'Upload & model', icon: '↥' },
+  { id: 'pipelines', label: 'Pipelines', icon: '⑂' }, { id: 'connectors', label: 'Connectors', icon: '⇄' }, { id: 'apps', label: 'Apps', icon: '▥' }, { id: 'automations', label: 'Automations', icon: '⚡' },
 ];
+const CONSOLE_ITEMS: SideItem[] = [
+  { id: 'home', label: 'Home', icon: '⌂' }, { id: 'ontology', label: 'Ontology Explorer', icon: '◎' }, { id: 'lineage', label: 'Lineage', icon: '⇲' },
+  { id: 'catalog', label: 'Catalog', icon: '≣' }, { id: 'dashboards', label: 'Dashboards', icon: '▦' }, { id: 'governance', label: 'Governance', icon: '🛡' },
+  { id: 'apisdk', label: 'API & SDK', icon: '{}' }, { id: 'ask', label: 'Ask', icon: '✦' }, { id: 'admin', label: 'Admin', icon: '⚙' },
+];
+const labelOf = (items: SideItem[], id: string): string => items.find((i) => i.id === id)?.label ?? id;
 
 export function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loginErr, setLoginErr] = useState('');
   const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
   const [project, setProject] = useState('project_default');
-  const [view, setView] = useState('explorer');
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [area, setArea] = useState<'console' | 'project'>('project');
+  const [view, setView] = useState('overview');
+  const [rk, setRk] = useState(0);
 
   useEffect(() => { api.me().then((r) => setUser(r.user)).catch(() => setUser(null)); }, []);
-  useEffect(() => { if (user) api.listProjects().then((r) => setProjects(r.projects)).catch(() => {}); }, [user]);
+  useEffect(() => { if (user) api.listProjects().then((r) => { setProjects(r.projects); const def = r.projects.find((p) => p.id === 'project_default') ?? r.projects[0]; if (def) { setProject(def.id); setActiveProject(def.id); } }).catch(() => {}); }, [user]);
 
-  async function doLogin(email: string, password: string) {
-    setLoginErr('');
-    try { await api.login(email, password); setUser((await api.me()).user); }
-    catch (e) { setLoginErr((e as Error).message); }
-  }
+  async function doLogin(email: string, password: string) { setLoginErr(''); try { await api.login(email, password); setUser((await api.me()).user); } catch (e) { setLoginErr((e as Error).message); } }
   async function doLogout() { await api.logout().catch(() => {}); setUser(null); }
-  function switchProject(id: string) { setActiveProject(id); setProject(id); setRefreshKey((k) => k + 1); }
-  async function createProject(name: string) { try { const { id } = await api.createProject(name); setProjects((await api.listProjects()).projects); switchProject(id); } catch { /* ignore */ } }
+  function openProject(id: string) { setActiveProject(id); setProject(id); setArea('project'); setView('overview'); setRk((k) => k + 1); }
+  function openConsole() { setArea('console'); setView('home'); }
+  function openSurface(id: string) { setArea('console'); setView(id); }
+  async function newProject() { const n = window.prompt('New project name'); if (!n || !n.trim()) return; try { const { id } = await api.createProject(n.trim()); setProjects((await api.listProjects()).projects); openProject(id); } catch { /* ignore */ } }
 
   if (!user) return <div className="wrap"><LoginForm onSubmit={doLogin} error={loginErr} /></div>;
 
+  const projName = projects.find((p) => p.id === project)?.name ?? 'Project';
+  const k = `${project}:${rk}`;
+  const breadcrumb = area === 'console' ? (view === 'home' ? ['Console'] : ['Console', labelOf(CONSOLE_ITEMS, view)]) : ['Console', projName, labelOf(PROJECT_ITEMS, view)];
+
   const surface = (() => {
+    if (area === 'console') {
+      switch (view) {
+        case 'ontology': return <ExplorerView />;
+        case 'lineage': return <LineageView />;
+        case 'catalog': return <CatalogView />;
+        case 'dashboards': return <DashboardsView />;
+        case 'governance': return <GovernanceView />;
+        case 'apisdk': return <ApiSdkView />;
+        case 'ask': return <AskView />;
+        case 'admin': return <AdminView />;
+        default: return <ConsoleHome projects={projects} onOpenProject={openProject} onNewProject={newProject} onOpenSurface={openSurface} />;
+      }
+    }
     switch (view) {
-      case 'data': return <DataView key={refreshKey} />;
-      case 'setup': return <SetupView onModeled={() => { setRefreshKey((k) => k + 1); setView('explorer'); }} />;
-      case 'apps': return <AppsView key={refreshKey} />;
-      case 'explorer': return <ExplorerView key={refreshKey} />;
-      case 'dashboards': return <DashboardsView />;
-      case 'governance': return <GovernanceView />;
-      case 'ask': return <AskView />;
-      case 'admin': return <AdminView />;
-      case 'pipelines': return <PipelinesView key={refreshKey} />;
-      case 'connectors': return <ConnectorsView key={refreshKey} />;
-      case 'automations': return <AutomationsView key={refreshKey} />;
-      case 'lineage': return <LineageView key={refreshKey} />;
-      case 'catalog': return <CatalogView />;
-      case 'apisdk': return <ApiSdkView />;
-      default: return <ExplorerView key={refreshKey} />;
+      case 'data': return <DataView key={k} />;
+      case 'setup': return <SetupView onModeled={() => { setRk((x) => x + 1); setView('data'); }} />;
+      case 'pipelines': return <PipelinesView key={k} />;
+      case 'connectors': return <ConnectorsView key={k} />;
+      case 'apps': return <AppsView key={k} />;
+      case 'automations': return <AutomationsView key={k} />;
+      default: return <ProjectOverview key={k} projectName={projName} onGo={setView} />;
     }
   })();
 
   return (
-    <div className="shell">
-      <div className="topbar">
-        <b>&#9651; SoftwareOntology</b>
-        <ProjectSwitcher projects={projects} current={project} onSelect={switchProject} onCreate={createProject} />
-        <span className="spacer" />
-        <span>{user.email}</span>
-        <button className="sec" onClick={doLogout}>Sign out</button>
-      </div>
-      <div className="body">
-        <Sidebar groups={GROUPS} active={view} onSelect={setView} />
-        <div className="main-panel">{surface}</div>
+    <div className="app">
+      <WorkspaceRail projects={projects} activeProjectId={project} area={area} userInitial={(user.email[0] ?? 'U').toUpperCase()} onConsole={openConsole} onSelectProject={openProject} onNewProject={newProject} />
+      {area === 'console'
+        ? <ContextSidebar header={{ title: 'Console' }} items={CONSOLE_ITEMS} active={view} onSelect={(v) => (v === 'home' ? openConsole() : openSurface(v))} />
+        : <ContextSidebar header={{ title: projName, subtitle: 'Project workspace', dotColor: colorFor(project) }} items={PROJECT_ITEMS} active={view} onSelect={setView} />}
+      <div className="main">
+        <TopBar breadcrumb={breadcrumb} userEmail={user.email} onSignOut={doLogout} />
+        <div className="content">{surface}</div>
       </div>
     </div>
   );
