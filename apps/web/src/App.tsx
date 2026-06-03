@@ -22,6 +22,8 @@ import { AutomationsView } from './views/AutomationsView';
 import { LineageView } from './views/LineageView';
 import { CatalogView } from './views/CatalogView';
 import { ApiSdkView } from './views/ApiSdkView';
+import { HelpPanel } from './components/HelpPanel';
+import { HELP } from './help';
 
 const PROJECT_ITEMS: SideItem[] = [
   { id: 'overview', label: 'Overview', icon: '▦' }, { id: 'data', label: 'Data', icon: '▤' }, { id: 'setup', label: 'Upload & model', icon: '↥' },
@@ -87,6 +89,8 @@ export function App() {
     }
   })();
 
+  const help = HELP[`${area}:${view}`];
+
   return (
     <div className="app">
       <WorkspaceRail projects={projects} activeProjectId={project} area={area} userInitial={(user.email[0] ?? 'U').toUpperCase()} onConsole={openConsole} onSelectProject={openProject} onNewProject={newProject} />
@@ -95,7 +99,7 @@ export function App() {
         : <ContextSidebar header={{ title: projName, subtitle: 'Project workspace', dotColor: colorFor(project) }} items={PROJECT_ITEMS} active={view} onSelect={setView} />}
       <div className="main">
         <TopBar breadcrumb={breadcrumb} userEmail={user.email} onSignOut={doLogout} onSearch={(q) => { setArea('console'); setView('catalog'); setSearchQuery(q); }} />
-        <div className="content">{surface}</div>
+        <div className="content">{help ? <HelpPanel title={help.title} steps={help.steps} /> : null}{surface}</div>
       </div>
       {showCreate ? <CreateProjectModal onClose={() => setShowCreate(false)} onCreate={async (name, description) => { try { const { id } = await api.createProject(name, description); setProjects((await api.listProjects()).projects); setShowCreate(false); openProject(id); } catch { setShowCreate(false); } }} /> : null}
     </div>
