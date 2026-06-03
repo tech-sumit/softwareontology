@@ -130,6 +130,25 @@ export function createOntologyService(ctx: ModuleContext) {
     );
   }
 
+  async function listLinkTypes(
+    orgId: string,
+  ): Promise<Array<{ apiName: string; fromObjectType: string; toObjectType: string; foreignKeyProperty: string }>> {
+    // link_types stores object-type *ids* (from_object_type_id / to_object_type_id);
+    // join object_types to surface the api_names callers expect.
+    return ctx.db.query<{ apiName: string; fromObjectType: string; toObjectType: string; foreignKeyProperty: string }>(
+      `SELECT lt.api_name AS "apiName",
+              f.api_name AS "fromObjectType",
+              t.api_name AS "toObjectType",
+              lt.foreign_key_property AS "foreignKeyProperty"
+       FROM link_types lt
+       JOIN object_types f ON f.id = lt.from_object_type_id
+       JOIN object_types t ON t.id = lt.to_object_type_id
+       WHERE lt.org_id = $1
+       ORDER BY lt.api_name`,
+      [orgId],
+    );
+  }
+
   async function setPropertySecurity(orgId: string, objectType: string, propertyApiName: string, requiredPermission: string | null): Promise<void> {
     const ot = await getObjectType(orgId, objectType);
     if (!ot) throw new Error(`object type not found: ${objectType}`);
@@ -176,5 +195,5 @@ export function createOntologyService(ctx: ModuleContext) {
     });
   }
 
-  return { createObjectType, listObjectTypes, getObjectType, createLinkType, resolveObjects, createFunction, setPropertySecurity, resolveLinkedObjects };
+  return { createObjectType, listObjectTypes, getObjectType, createLinkType, listLinkTypes, resolveObjects, createFunction, setPropertySecurity, resolveLinkedObjects };
 }

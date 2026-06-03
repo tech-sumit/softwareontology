@@ -27,8 +27,11 @@ export const ontologyRoutes: FastifyPluginAsync = async (fastify) => {
     const { apiName } = req.params as { apiName: string };
     const ot = await svc.getObjectType(req.user!.orgId, apiName);
     if (!ot) return reply.code(404).send({ error: 'not found' });
-    return { objectType: { apiName: ot.apiName, datasetId: ot.datasetId, primaryKey: ot.primaryKey, properties: ot.properties } };
+    const links = (await svc.listLinkTypes(req.user!.orgId)).filter((l) => l.fromObjectType === ot.apiName);
+    return { objectType: { apiName: ot.apiName, datasetId: ot.datasetId, primaryKey: ot.primaryKey, properties: ot.properties, functions: ot.functions ?? [], links } };
   });
+
+  fastify.get('/link-types', { preHandler: requirePermission('ontology:read') }, async (req) => ({ linkTypes: await svc.listLinkTypes(req.user!.orgId) }));
 
   fastify.get('/object-types/:apiName/objects', { preHandler: requirePermission('ontology:read') }, async (req, reply) => {
     const { apiName } = req.params as { apiName: string };
