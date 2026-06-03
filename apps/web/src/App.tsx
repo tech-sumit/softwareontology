@@ -7,7 +7,7 @@ import { TopBar } from './components/TopBar';
 import { ConsoleHome } from './views/ConsoleHome';
 import { ProjectOverview } from './views/ProjectOverview';
 import { SetupView } from './views/SetupView';
-import { ExplorerView } from './views/ExplorerView';
+import { OntologyManager } from './views/OntologyManager';
 import { AdminView } from './views/AdminView';
 import { DashboardsView } from './views/DashboardsView';
 import { AskView } from './views/AskView';
@@ -60,7 +60,7 @@ export function App() {
   const surface = (() => {
     if (area === 'console') {
       switch (view) {
-        case 'ontology': return <ExplorerView />;
+        case 'ontology': return <OntologyManager />;
         case 'lineage': return <LineageView />;
         case 'catalog': return <CatalogView />;
         case 'dashboards': return <DashboardsView />;
