@@ -44,8 +44,8 @@ export function PipelinesView() {
       <div style={{ display: 'flex', gap: 24 }}>
         <div style={{ minWidth: 220 }}>
           <h3>In this project</h3>
-          {pipelines.length === 0 ? <p style={{ color: '#8a929c' }}>None yet.</p> : (
-            <ul className="plain">{pipelines.map((p) => <li key={p.id} className={sel === p.id ? 'sel' : ''} style={{ cursor: 'pointer', padding: '4px 0' }} onClick={() => loadRuns(p.id)}>{p.name} <em style={{ color: '#8a929c' }}>({p.inputs.join(', ')})</em></li>)}</ul>
+          {pipelines.length === 0 ? <p style={{ color: 'var(--muted)' }}>None yet.</p> : (
+            <ul className="plain">{pipelines.map((p) => <li key={p.id} className={sel === p.id ? 'sel' : ''} style={{ cursor: 'pointer', padding: '4px 0' }} onClick={() => loadRuns(p.id)}>{p.name} <em style={{ color: 'var(--muted)' }}>({p.inputs.join(', ')})</em></li>)}</ul>
           )}
         </div>
         <div style={{ flex: 1 }}>
@@ -59,11 +59,11 @@ export function PipelinesView() {
                 <button onClick={() => schedule(sel)}>Schedule</button> <button className="sec" onClick={() => unschedule(sel)}>Clear</button>
               </div>
             </div>
-          ) : <p style={{ color: '#8a929c' }}>Select a pipeline to run it and view build health.</p>}
+          ) : <p style={{ color: 'var(--muted)' }}>Select a pipeline to run it and view build health.</p>}
         </div>
       </div>
 
-      <div style={{ borderTop: '1px solid #2a2f37', marginTop: 16, paddingTop: 12 }}>
+      <div style={{ borderTop: '1px solid var(--line)', marginTop: 16, paddingTop: 12 }}>
         <h3>New pipeline</h3>
         <label htmlFor="pname">Name</label> <input id="pname" value={name} onChange={(e) => setName(e.target.value)} placeholder="delayed_flights" />
         <label htmlFor="pin"> Inputs (comma-sep dataset names)</label> <input id="pin" value={inputs} onChange={(e) => setInputs(e.target.value)} placeholder="flights" />

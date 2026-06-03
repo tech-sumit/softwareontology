@@ -1,5 +1,5 @@
 export function UsersTable({ users }: { users: Array<{ id: string; email: string; roles: string[] }> }) {
-  if (users.length === 0) return <p style={{ color: '#8a929c' }}>No users.</p>;
+  if (users.length === 0) return <p style={{ color: 'var(--muted)' }}>No users.</p>;
   return (
     <table>
       <thead><tr><th>Email</th><th>Roles</th></tr></thead>

@@ -18,7 +18,7 @@ export function AskView() {
   return (
     <div className="card">
       <h2>Ask (AIP)</h2>
-      <p style={{ fontSize: 12, color: '#8a929c' }}>Default provider is <code>echo</code> (offline). Set AIP_PROVIDER=http + AIP_ENDPOINT for a real model.</p>
+      <p style={{ fontSize: 12, color: 'var(--muted)' }}>Default provider is <code>echo</code> (offline). Set AIP_PROVIDER=http + AIP_ENDPOINT for a real model.</p>
       <label htmlFor="aot">Object type</label>
       <select id="aot" value={ot} onChange={(e) => setOt(e.target.value)}>{types.map((t) => <option key={t.apiName} value={t.apiName}>{t.apiName}</option>)}</select>
       <label htmlFor="q">Question</label>

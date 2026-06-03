@@ -1,7 +1,7 @@
 export interface PipelineRun { id: string; status: string; trigger: string; rowCount: number | null; error: string | null; startedAt: string; }
 
 export function RunsTable({ runs }: { runs: PipelineRun[] }) {
-  if (runs.length === 0) return <p style={{ color: '#8a929c' }}>No runs yet.</p>;
+  if (runs.length === 0) return <p style={{ color: 'var(--muted)' }}>No runs yet.</p>;
   return (
     <table>
       <thead><tr><th>Status</th><th>Trigger</th><th>Rows</th><th>Error</th></tr></thead>

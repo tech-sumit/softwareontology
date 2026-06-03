@@ -12,7 +12,7 @@ export function DataView() {
   return (
     <div className="card">
       <h2>Data</h2>
-      {datasets.length === 0 ? <p style={{ color: '#8a929c' }}>No datasets in this project. Upload one under "Upload &amp; model".</p> : (
+      {datasets.length === 0 ? <p style={{ color: 'var(--muted)' }}>No datasets in this project. Upload one under "Upload &amp; model".</p> : (
         <table><thead><tr><th>Dataset</th><th>Rows</th></tr></thead>
           <tbody>{datasets.map((d) => <tr key={d.id} className={sel === d.id ? 'sel' : ''} onClick={() => preview(d.id)} style={{ cursor: 'pointer' }}><td>{d.name}</td><td>{d.rowCount ?? ''}</td></tr>)}</tbody>
         </table>

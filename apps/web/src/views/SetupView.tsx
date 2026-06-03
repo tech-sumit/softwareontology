@@ -34,7 +34,7 @@ export function SetupView({ onModeled }: { onModeled: () => void }) {
       <textarea id="csv" rows={6} value={csv} onChange={(e) => setCsv(e.target.value)} />
       <label htmlFor="ot">Object type name</label>
       <input id="ot" value={otName} onChange={(e) => setOtName(e.target.value)} />
-      <p style={{ fontSize: 12, color: '#8a929c' }}>Maps flight_no&rarr;flightNumber, status&rarr;status, seats&rarr;seats (int).</p>
+      <p style={{ fontSize: 12, color: 'var(--muted)' }}>Maps flight_no&rarr;flightNumber, status&rarr;status, seats&rarr;seats (int).</p>
       <button onClick={run}>Upload &amp; model</button>
       {msg ? <div style={{ color: '#1e7a44', marginTop: 8 }}>{msg}</div> : null}
       {err ? <div className="err">{err}</div> : null}

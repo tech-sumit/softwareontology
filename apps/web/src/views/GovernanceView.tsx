@@ -35,7 +35,7 @@ export function GovernanceView() {
   return (
     <div className="card">
       <h2>Governance — markings &amp; clearances</h2>
-      <p style={{ color: '#8a929c' }}>Markings are mandatory: reading a marked dataset requires clearance for every marking on it (not bypassed by admin). Derived datasets inherit their sources' markings.</p>
+      <p style={{ color: 'var(--muted)' }}>Markings are mandatory: reading a marked dataset requires clearance for every marking on it (not bypassed by admin). Derived datasets inherit their sources' markings.</p>
 
       <h3>Markings</h3>
       <MarkingsTable markings={markings} clearedIds={clearedIds} />

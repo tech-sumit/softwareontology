@@ -74,10 +74,10 @@ export function AppsView() {
         <label htmlFor="appname">App name</label>
         <input id="appname" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ops Console" />
         <h3>Widgets</h3>
-        {widgets.length === 0 ? <p style={{ color: '#8a929c' }}>No widgets yet.</p> : (
+        {widgets.length === 0 ? <p style={{ color: 'var(--muted)' }}>No widgets yet.</p> : (
           <ul>{widgets.map((w) => <li key={w.id}>{w.title ?? w.type} <em>({w.type}: {String(w.config.objectType ?? w.config.action ?? '')})</em> <button className="sec" onClick={() => removeWidget(w.id)}>Remove</button></li>)}</ul>
         )}
-        <div style={{ borderTop: '1px solid #2a2f37', marginTop: 10, paddingTop: 10 }}>
+        <div style={{ borderTop: '1px solid var(--line)', marginTop: 10, paddingTop: 10 }}>
           <label htmlFor="wtype">Add widget</label>
           <select id="wtype" value={wType} onChange={(e) => setWType(e.target.value)}>
             <option value="object-table">Object table</option>
@@ -109,7 +109,7 @@ export function AppsView() {
   return (
     <div className="card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><h2>Apps</h2><button onClick={startNew}>New app</button></div>
-      {apps.length === 0 ? <p style={{ color: '#8a929c' }}>No apps yet. Build one!</p> : (
+      {apps.length === 0 ? <p style={{ color: 'var(--muted)' }}>No apps yet. Build one!</p> : (
         <table><thead><tr><th>Name</th><th></th></tr></thead>
           <tbody>{apps.map((a) => <tr key={a.id}><td>{a.name}</td><td style={{ textAlign: 'right' }}>
             <button onClick={() => run(a.id)}>Run</button> <button className="sec" onClick={() => startEdit(a.id)}>Edit</button> <button className="sec" onClick={() => remove(a.id)}>Delete</button>

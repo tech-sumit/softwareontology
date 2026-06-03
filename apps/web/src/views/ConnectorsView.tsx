@@ -77,9 +77,9 @@ export function ConnectorsView() {
   return (
     <div className="card">
       <h2>Connectors</h2>
-      <p style={{ color: '#8a929c' }}>Pull external data into this project as datasets. Create a connector, then Sync to ingest.</p>
+      <p style={{ color: 'var(--muted)' }}>Pull external data into this project as datasets. Create a connector, then Sync to ingest.</p>
 
-      <div style={{ borderTop: '1px solid #2a2f37', marginTop: 12, paddingTop: 12 }}>
+      <div style={{ borderTop: '1px solid var(--line)', marginTop: 12, paddingTop: 12 }}>
         <h3>Database (Postgres)</h3>
         <ConnectorList connectors={dbConns} onSync={syncDb} />
         <div style={{ marginTop: 8 }}>
@@ -92,7 +92,7 @@ export function ConnectorsView() {
         {dbErr ? <div className="err">{dbErr}</div> : null}
       </div>
 
-      <div style={{ borderTop: '1px solid #2a2f37', marginTop: 16, paddingTop: 12 }}>
+      <div style={{ borderTop: '1px solid var(--line)', marginTop: 16, paddingTop: 12 }}>
         <h3>Cloud (S3 / REST)</h3>
         <ConnectorList connectors={cloudConns} onSync={syncCloud} />
         <div style={{ margin: '8px 0' }}>
@@ -121,7 +121,7 @@ export function ConnectorsView() {
         {cloudErr ? <div className="err">{cloudErr}</div> : null}
       </div>
 
-      <div style={{ borderTop: '1px solid #2a2f37', marginTop: 16, paddingTop: 12 }}>
+      <div style={{ borderTop: '1px solid var(--line)', marginTop: 16, paddingTop: 12 }}>
         <h3>Airflow (connector-runner)</h3>
         <ConnectorList connectors={airflowConns} onSync={syncAirflow} />
         <div style={{ marginTop: 8 }}>

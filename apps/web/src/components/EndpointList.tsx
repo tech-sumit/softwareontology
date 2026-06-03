@@ -1,7 +1,7 @@
 export interface Endpoint { method: string; path: string; }
 
 export function EndpointList({ endpoints }: { endpoints: Endpoint[] }) {
-  if (endpoints.length === 0) return <p style={{ color: '#8a929c' }}>No endpoints.</p>;
+  if (endpoints.length === 0) return <p style={{ color: 'var(--muted)' }}>No endpoints.</p>;
   return (
     <table>
       <thead><tr><th>Method</th><th>Path</th></tr></thead>

@@ -1,5 +1,5 @@
 export function BarList({ buckets }: { buckets: Array<{ group: string; count: number }> }) {
-  if (buckets.length === 0) return <p style={{ color: '#8a929c' }}>No data.</p>;
+  if (buckets.length === 0) return <p style={{ color: 'var(--muted)' }}>No data.</p>;
   const max = Math.max(...buckets.map((b) => b.count), 1);
   return (
     <div>

@@ -7,7 +7,7 @@ export function ObjectsTable({
   selected?: string | undefined;
   onSelect: (id: string) => void;
 }) {
-  if (rows.length === 0) return <p style={{ color: '#8a929c' }}>No objects.</p>;
+  if (rows.length === 0) return <p style={{ color: 'var(--muted)' }}>No objects.</p>;
   return (
     <table>
       <thead><tr>{columns.map((c) => <th key={c}>{c}</th>)}</tr></thead>

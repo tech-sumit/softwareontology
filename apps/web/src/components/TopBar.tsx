@@ -1,4 +1,4 @@
-export function TopBar({ breadcrumb, userEmail, onSignOut }: { breadcrumb: string[]; userEmail: string; onSignOut: () => void }) {
+export function TopBar({ breadcrumb, userEmail, onSignOut, onSearch }: { breadcrumb: string[]; userEmail: string; onSignOut: () => void; onSearch?: (q: string) => void }) {
   return (
     <div className="topbar2">
       <div className="crumb2">
@@ -7,7 +7,7 @@ export function TopBar({ breadcrumb, userEmail, onSignOut }: { breadcrumb: strin
         ))}
       </div>
       <div className="spacer" />
-      <input className="search2" placeholder="Search…" aria-label="search" />
+      <input className="search2" placeholder="Search…" aria-label="search" onKeyDown={(e) => { if (e.key === 'Enter' && onSearch) onSearch((e.target as HTMLInputElement).value); }} />
       <span className="muted" style={{ fontSize: 13 }}>{userEmail}</span>
       <button className="sec" onClick={onSignOut}>Sign out</button>
     </div>

@@ -29,15 +29,15 @@ export function AutomationsView() {
   return (
     <div className="card">
       <h2>Automations</h2>
-      <p style={{ color: '#8a929c' }}>Run a follow-up action whenever a trigger action fires.</p>
-      {automations.length === 0 ? <p style={{ color: '#8a929c' }}>None yet.</p> : (
+      <p style={{ color: 'var(--muted)' }}>Run a follow-up action whenever a trigger action fires.</p>
+      {automations.length === 0 ? <p style={{ color: 'var(--muted)' }}>None yet.</p> : (
         <table>
           <thead><tr><th>Name</th><th>Trigger</th><th>Then</th></tr></thead>
           <tbody>{automations.map((a) => <tr key={a.id}><td>{a.name}</td><td>{a.triggerAction}</td><td>{a.thenAction}</td></tr>)}</tbody>
         </table>
       )}
 
-      <div style={{ borderTop: '1px solid #2a2f37', marginTop: 16, paddingTop: 12 }}>
+      <div style={{ borderTop: '1px solid var(--line)', marginTop: 16, paddingTop: 12 }}>
         <h3>New automation</h3>
         <label htmlFor="au-name">Name</label> <input id="au-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="on_order_close" />
         <label htmlFor="au-trigger"> Trigger action</label> <input id="au-trigger" value={triggerAction} onChange={(e) => setTriggerAction(e.target.value)} placeholder="closeOrder" />

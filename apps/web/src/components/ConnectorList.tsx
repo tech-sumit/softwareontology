@@ -1,5 +1,5 @@
 export function ConnectorList({ connectors, onSync }: { connectors: Array<{ id: string; name: string }>; onSync: (id: string) => void }) {
-  if (connectors.length === 0) return <p style={{ color: '#8a929c' }}>None yet.</p>;
+  if (connectors.length === 0) return <p style={{ color: 'var(--muted)' }}>None yet.</p>;
   return (
     <table>
       <thead><tr><th>Name</th><th></th></tr></thead>

@@ -41,6 +41,7 @@ export function App() {
   const [area, setArea] = useState<'console' | 'project'>('project');
   const [view, setView] = useState('overview');
   const [rk, setRk] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => { api.me().then((r) => setUser(r.user)).catch(() => setUser(null)); }, []);
   useEffect(() => { if (user) api.listProjects().then((r) => { setProjects(r.projects); const def = r.projects.find((p) => p.id === 'project_default') ?? r.projects[0]; if (def) { setProject(def.id); setActiveProject(def.id); } }).catch(() => {}); }, [user]);
@@ -52,7 +53,7 @@ export function App() {
   function openSurface(id: string) { setArea('console'); setView(id); }
   async function newProject() { const n = window.prompt('New project name'); if (!n || !n.trim()) return; try { const { id } = await api.createProject(n.trim()); setProjects((await api.listProjects()).projects); openProject(id); } catch { /* ignore */ } }
 
-  if (!user) return <div className="wrap"><LoginForm onSubmit={doLogin} error={loginErr} /></div>;
+  if (!user) return <div className="wrap"><LoginForm onSubmit={doLogin} error={loginErr} onSso={() => { window.location.href = '/api/auth/oidc/login'; }} /></div>;
 
   const projName = projects.find((p) => p.id === project)?.name ?? 'Project';
   const k = `${project}:${rk}`;
@@ -64,7 +65,7 @@ export function App() {
         case 'ontology': return <OntologyManager />;
         case 'explorer': return <ObjectExplorer />;
         case 'lineage': return <LineageView />;
-        case 'catalog': return <CatalogView />;
+        case 'catalog': return <CatalogView initialQuery={searchQuery} key={searchQuery} />;
         case 'dashboards': return <DashboardsView />;
         case 'governance': return <GovernanceView />;
         case 'apisdk': return <ApiSdkView />;
@@ -91,7 +92,7 @@ export function App() {
         ? <ContextSidebar header={{ title: 'Console' }} items={CONSOLE_ITEMS} active={view} onSelect={(v) => (v === 'home' ? openConsole() : openSurface(v))} />
         : <ContextSidebar header={{ title: projName, subtitle: 'Project workspace', dotColor: colorFor(project) }} items={PROJECT_ITEMS} active={view} onSelect={setView} />}
       <div className="main">
-        <TopBar breadcrumb={breadcrumb} userEmail={user.email} onSignOut={doLogout} />
+        <TopBar breadcrumb={breadcrumb} userEmail={user.email} onSignOut={doLogout} onSearch={(q) => { setArea('console'); setView('catalog'); setSearchQuery(q); }} />
         <div className="content">{surface}</div>
       </div>
     </div>

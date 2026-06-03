@@ -14,4 +14,11 @@ describe('LoginForm', () => {
     render(<LoginForm onSubmit={() => {}} error="invalid credentials" />);
     expect(screen.getByRole('alert')).toHaveTextContent('invalid credentials');
   });
+
+  it('fires onSso when the SSO button is clicked', () => {
+    const onSso = vi.fn();
+    render(<LoginForm onSubmit={() => {}} onSso={onSso} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in with SSO' }));
+    expect(onSso).toHaveBeenCalled();
+  });
 });

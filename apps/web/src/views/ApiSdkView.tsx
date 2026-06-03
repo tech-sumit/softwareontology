@@ -25,7 +25,7 @@ export function ApiSdkView() {
   return (
     <div className="card">
       <h2>API &amp; SDK</h2>
-      <p style={{ color: '#8a929c' }}>
+      <p style={{ color: 'var(--muted)' }}>
         Every surface here is backed by a REST API. The full OpenAPI 3.1 spec is served at{' '}
         <a href="/api/openapi/spec">/api/openapi/spec</a> (<a href="/api/openapi/spec">raw spec</a>). A typed client is generated
         from it via <code>pnpm gen:client</code> into the <code>@so/client</code> package.
