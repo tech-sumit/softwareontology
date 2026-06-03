@@ -5,9 +5,11 @@ import { ObjectsTable } from '../components/ObjectsTable';
 
 interface Fn { apiName: string; expression: string; type: string }
 interface Link { apiName: string; fromObjectType: string; toObjectType: string; foreignKeyProperty: string }
+interface ActionDef { apiName: string; objectType: string; kind: string }
 interface Detail { apiName: string; datasetId: string; primaryKey: string; properties: Prop[]; functions: Fn[]; links: Link[] }
 
 const TYPES = ['string', 'int', 'float', 'bool', 'timestamp'] as const;
+const ACTION_KINDS = ['modify', 'create'] as const;
 
 interface NewProp { apiName: string; column: string; type: string }
 
@@ -29,6 +31,10 @@ export function OntologyManager() {
   const [lkName, setLkName] = useState('');
   const [lkTo, setLkTo] = useState('');
   const [lkFk, setLkFk] = useState('');
+  // Actions
+  const [actions, setActions] = useState<ActionDef[]>([]);
+  const [acName, setAcName] = useState('');
+  const [acKind, setAcKind] = useState<string>('modify');
   // New-object-type form
   const [datasets, setDatasets] = useState<Array<{ id: string; name: string }>>([]);
   const [otName, setOtName] = useState('');
@@ -41,7 +47,10 @@ export function OntologyManager() {
   }
   async function loadDetail(name: string) {
     setErr(''); setObjects(null); setObjSel(undefined);
-    try { setDetail((await api.getObjectType(name)).objectType); } catch (e) { setErr((e as Error).message); }
+    try {
+      setDetail((await api.getObjectType(name)).objectType);
+      setActions((await api.listActions()).actions.filter((a) => a.objectType === name));
+    } catch (e) { setErr((e as Error).message); }
   }
   useEffect(() => { void loadTypes(); }, []);
   useEffect(() => { if (active) void loadDetail(active); else setDetail(null); }, [active]);
@@ -89,6 +98,12 @@ export function OntologyManager() {
     if (!active) return;
     setErr(''); setMsg('');
     try { await api.createLinkType({ apiName: lkName.trim(), fromObjectType: active, toObjectType: lkTo, foreignKeyProperty: lkFk }); setLkName(''); setLkTo(''); setLkFk(''); await loadDetail(active); setMsg(`Added link "${lkName.trim()}".`); }
+    catch (e) { setErr((e as Error).message); }
+  }
+  async function addAction() {
+    if (!active) return;
+    setErr(''); setMsg('');
+    try { await api.createAction({ apiName: acName.trim(), objectType: active, kind: acKind }); setAcName(''); setAcKind('modify'); await loadDetail(active); setMsg(`Added action "${acName.trim()}".`); }
     catch (e) { setErr((e as Error).message); }
   }
   async function browse() {
@@ -209,6 +224,22 @@ export function OntologyManager() {
                 {detail.properties.map((p) => <option key={p.apiName} value={p.apiName}>{p.apiName}</option>)}
               </select>
               <button className="sec" onClick={() => void addLink()}>Add link</button>
+            </div>
+
+            <h3 style={{ marginTop: 22 }}>Actions</h3>
+            {actions.length === 0 ? <p className="muted">No actions.</p> : (
+              <ul className="plain">
+                {actions.map((a) => (
+                  <li key={a.apiName} style={{ padding: '3px 0' }}><b>{a.apiName}</b> <span className="muted">· {a.kind}</span></li>
+                ))}
+              </ul>
+            )}
+            <div className="row" style={{ marginTop: 10, gap: 6, flexWrap: 'wrap' }}>
+              <input aria-label="action apiName" value={acName} onChange={(e) => setAcName(e.target.value)} placeholder="apiName" style={{ width: 130 }} />
+              <select aria-label="action kind" value={acKind} onChange={(e) => setAcKind(e.target.value)}>
+                {ACTION_KINDS.map((k) => <option key={k} value={k}>{k}</option>)}
+              </select>
+              <button className="sec" onClick={() => void addAction()}>Add action</button>
             </div>
 
             <h3 style={{ marginTop: 22 }}>Objects</h3>
