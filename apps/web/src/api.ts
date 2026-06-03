@@ -43,6 +43,7 @@ export const api = {
   setPropertySecurity: (objectType: string, propName: string, requiredPermission: string | null) => req<{ ok: boolean }>('POST', `/ontology/object-types/${objectType}/properties/${propName}/security`, { requiredPermission }),
   listLinkTypes: () => req<{ linkTypes: Array<{ apiName: string; fromObjectType: string; toObjectType: string; foreignKeyProperty: string }> }>('GET', '/ontology/link-types'),
   getObjects: (n: string) => req<{ objects: Record<string, unknown>[] }>('GET', `/ontology/object-types/${n}/objects`),
+  resolveLinkedObjects: (objectType: string, pk: string, linkApiName: string) => req<{ objects: Record<string, unknown>[] }>('GET', `/ontology/object-types/${objectType}/objects/${encodeURIComponent(pk)}/links/${linkApiName}`),
   listActions: () => req<{ actions: Array<{ apiName: string; objectType: string; kind: string }> }>('GET', '/actions/definitions'),
   createAction: (body: unknown) => req<{ ok: boolean }>('POST', '/actions/definitions', body),
   executeAction: (apiName: string, body: unknown) => req<{ ok: boolean }>('POST', `/actions/${apiName}/execute`, body),

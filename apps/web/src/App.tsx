@@ -8,6 +8,7 @@ import { ConsoleHome } from './views/ConsoleHome';
 import { ProjectOverview } from './views/ProjectOverview';
 import { SetupView } from './views/SetupView';
 import { OntologyManager } from './views/OntologyManager';
+import { ObjectExplorer } from './views/ObjectExplorer';
 import { AdminView } from './views/AdminView';
 import { DashboardsView } from './views/DashboardsView';
 import { AskView } from './views/AskView';
@@ -26,7 +27,7 @@ const PROJECT_ITEMS: SideItem[] = [
   { id: 'pipelines', label: 'Pipelines', icon: '⑂' }, { id: 'connectors', label: 'Connectors', icon: '⇄' }, { id: 'apps', label: 'Apps', icon: '▥' }, { id: 'automations', label: 'Automations', icon: '⚡' },
 ];
 const CONSOLE_ITEMS: SideItem[] = [
-  { id: 'home', label: 'Home', icon: '⌂' }, { id: 'ontology', label: 'Ontology Explorer', icon: '◎' }, { id: 'lineage', label: 'Lineage', icon: '⇲' },
+  { id: 'home', label: 'Home', icon: '⌂' }, { id: 'ontology', label: 'Ontology Explorer', icon: '◎' }, { id: 'explorer', label: 'Object Explorer', icon: '◧' }, { id: 'lineage', label: 'Lineage', icon: '⇲' },
   { id: 'catalog', label: 'Catalog', icon: '≣' }, { id: 'dashboards', label: 'Dashboards', icon: '▦' }, { id: 'governance', label: 'Governance', icon: '🛡' },
   { id: 'apisdk', label: 'API & SDK', icon: '{}' }, { id: 'ask', label: 'Ask', icon: '✦' }, { id: 'admin', label: 'Admin', icon: '⚙' },
 ];
@@ -61,6 +62,7 @@ export function App() {
     if (area === 'console') {
       switch (view) {
         case 'ontology': return <OntologyManager />;
+        case 'explorer': return <ObjectExplorer />;
         case 'lineage': return <LineageView />;
         case 'catalog': return <CatalogView />;
         case 'dashboards': return <DashboardsView />;
