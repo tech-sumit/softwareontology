@@ -1,6 +1,7 @@
 import type { ModuleContext } from '@so/sdk';
 import { createOntologyService } from '@so/ontology';
 import { hashEmbed, cosine } from './embed.js';
+import { parseAction } from './agent.js';
 
 interface Provider {
   complete(prompt: string): Promise<string>;
@@ -89,5 +90,46 @@ export function createAipService(ctx: ModuleContext) {
     return scored.slice(0, Math.max(1, Math.min(k, 100)));
   }
 
-  return { complete, ask, indexObjectType, search };
+  async function aggregateLocal(orgId: string, objectType: string, groupBy: string): Promise<Array<{ group: string; count: number }>> {
+    const objs = await ontology.resolveObjects(orgId, objectType, { limit: 1000 });
+    const m = new Map<string, number>();
+    for (const o of objs) { const g = String(o[groupBy] ?? '∅'); m.set(g, (m.get(g) ?? 0) + 1); }
+    return [...m.entries()].map(([group, count]) => ({ group, count })).sort((a, b) => b.count - a.count);
+  }
+  const tools: Array<{ name: string; description: string; run: (orgId: string, a: Record<string, unknown>) => Promise<unknown> }> = [
+    { name: 'listTypes', description: 'List object type apiNames. args: {}', run: async (orgId) => (await ontology.listObjectTypes(orgId)).map((t) => t.apiName) },
+    { name: 'search', description: 'Semantic search within a type. args: {objectType, query}', run: async (orgId, a) => search(orgId, String(a.objectType), String(a.query), 5) },
+    { name: 'sample', description: 'Return some objects of a type. args: {objectType, limit}', run: async (orgId, a) => ontology.resolveObjects(orgId, String(a.objectType), { limit: Math.min(Number(a.limit) || 10, 50) }) },
+    { name: 'aggregate', description: 'Group-by counts. args: {objectType, groupBy}', run: async (orgId, a) => aggregateLocal(orgId, String(a.objectType), String(a.groupBy)) },
+  ];
+  async function agent(orgId: string, question: string, opts?: { maxSteps?: number }): Promise<{ answer: string; steps: Array<{ tool: string; args: unknown; observation: string }> }> {
+    const maxSteps = opts?.maxSteps ?? 4;
+    const types = (await ontology.listObjectTypes(orgId)).map((t) => t.apiName);
+    const catalog = tools.map((t) => `- ${t.name}: ${t.description}`).join('\n');
+    const steps: Array<{ tool: string; args: unknown; observation: string }> = [];
+    const p = provider();
+    let history = '';
+    for (let i = 0; i < maxSteps; i++) {
+      const prompt = `You are an analytics agent over an object ontology. Object types: ${types.join(', ')}.\nTools:\n${catalog}\nReply with ONE JSON object: {"tool":"<name>","args":{...}} to call a tool, or {"final":"<answer>"} when done.\nQuestion: ${question}${history}`;
+      const act = parseAction(await p.complete(prompt));
+      if (!act) break;
+      if ('final' in act) return { answer: act.final, steps };
+      const tool = tools.find((t) => t.name === act.tool);
+      let observation: string;
+      if (!tool) observation = `unknown tool: ${act.tool}`;
+      else { try { observation = JSON.stringify(await tool.run(orgId, act.args)).slice(0, 1500); } catch (e) { observation = `error: ${(e as Error).message}`; } }
+      steps.push({ tool: act.tool, args: act.args, observation });
+      history += `\nAction: ${JSON.stringify(act)}\nObservation: ${observation}`;
+    }
+    // Fallback (the echo provider emits no tool calls): pick a referenced type and semantic-search it.
+    const ql = question.toLowerCase();
+    const type = types.find((t) => ql.includes(t.toLowerCase())) ?? types[0];
+    if (!type) return { answer: 'No object types are defined yet.', steps };
+    const hits = await search(orgId, type, question, 5);
+    steps.push({ tool: 'search', args: { objectType: type, query: question }, observation: JSON.stringify(hits).slice(0, 1500) });
+    const answer = hits.length ? `Top matches in ${type}: ${hits.map((h) => `${h.primaryKey} (${h.score.toFixed(2)})`).join(', ')}.` : `No matches in ${type} — try indexing it first.`;
+    return { answer, steps };
+  }
+
+  return { complete, ask, indexObjectType, search, agent };
 }

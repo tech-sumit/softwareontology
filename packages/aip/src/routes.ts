@@ -31,4 +31,11 @@ export const aipRoutes: FastifyPluginAsync = async (fastify) => {
     try { return reply.send({ results: await svc.search(req.user!.orgId, b.objectType, b.query, b.k ?? 10) }); }
     catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
   });
+
+  fastify.post('/agent', { preHandler: requirePermission('aip:use') }, async (req, reply) => {
+    const b = req.body as { question?: string };
+    if (!b?.question) return reply.code(400).send({ error: 'question required' });
+    try { return reply.send(await svc.agent(req.user!.orgId, b.question)); }
+    catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
+  });
 };
