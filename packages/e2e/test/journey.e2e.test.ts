@@ -52,6 +52,7 @@ beforeAll(async () => {
   await db.query(`DELETE FROM object_properties WHERE object_type_id IN (SELECT id FROM object_types WHERE org_id='org_default' AND api_name=$1)`, [OT]);
   await db.query(`DELETE FROM object_types WHERE org_id='org_default' AND api_name=$1`, [OT]);
   await db.query(`DELETE FROM action_defs WHERE api_name IN ('e2eSetStatus','e2eSetSeats')`);
+  await db.query(`DELETE FROM branches WHERE name='wip'`);
   await db.query(`DELETE FROM automations WHERE name='e2eauto'`);
   await db.query(`DELETE FROM db_connectors WHERE name='e2econn'`);
   await db.query(`DELETE FROM pipelines WHERE name='e2epipe'`);
@@ -177,6 +178,23 @@ describe('E2E: full platform journey (all 13 modules)', () => {
     const gr = await server.app.inject({ method: 'POST', url: `/api/pipelines/${gp.json().id}/run`, headers: a });
     const om = await server.app.inject({ method: 'GET', url: `/api/governance/datasets/${gr.json().datasetId}/markings`, headers: a });
     expect((om.json().markings as Array<{ name: string }>).some((m) => m.name === 'E2EMARK')).toBe(true);
+
+    // O. branching: edits on a branch are isolated from main, then merge into main
+    const PK = 'FL-2';
+    const PK_PROP = 'flightNumber';
+    await server.app.inject({ method: 'POST', url: '/api/ontology/branches', headers: a, payload: { name: 'wip' } });
+    const branchAuth = { ...a, 'x-branch': 'wip' };
+    await server.app.inject({ method: 'POST', url: '/api/actions/e2eSetStatus/execute', headers: branchAuth, payload: { primaryKey: PK, edits: { status: 'BranchOnly' } } });
+    // main is unchanged; branch sees the edit
+    const onMain = await server.app.inject({ method: 'GET', url: `/api/ontology/object-types/${OT}/objects`, headers: a });
+    const onBranch = await server.app.inject({ method: 'GET', url: `/api/ontology/object-types/${OT}/objects`, headers: branchAuth });
+    const findStatus = (resp: typeof onMain) => ((resp.json().objects as Array<Record<string, unknown>>).find((o) => String(o[PK_PROP]) === PK)?.status);
+    expect(findStatus(onBranch)).toBe('BranchOnly');
+    expect(findStatus(onMain)).not.toBe('BranchOnly');
+    // merge → main now reflects it
+    await server.app.inject({ method: 'POST', url: '/api/ontology/branches/wip/merge', headers: a });
+    const onMainAfter = await server.app.inject({ method: 'GET', url: `/api/ontology/object-types/${OT}/objects`, headers: a });
+    expect(findStatus(onMainAfter)).toBe('BranchOnly');
   });
 
   it('property-level RLS masks a secured property for a limited user', async () => {
