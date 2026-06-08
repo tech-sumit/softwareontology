@@ -114,6 +114,16 @@ describe('E2E: full platform journey (all 13 modules)', () => {
     expect(ask.json().answer).toContain(OT);
     expect(ask.json().answer).toContain('how many?');
 
+    // 5b. AIP semantic search: index the object type then search by meaning (echo = deterministic hash embedding)
+    const idx = await server.app.inject({ method: 'POST', url: '/api/aip/index', headers: a, payload: { objectType: OT } });
+    expect(idx.statusCode).toBe(200);
+    expect(idx.json().indexed).toBeGreaterThan(0);
+    const sr = await server.app.inject({ method: 'POST', url: '/api/aip/search', headers: a, payload: { objectType: OT, query: 'Delayed' } });
+    expect(sr.statusCode).toBe(200);
+    const results = sr.json().results as Array<{ primaryKey: string; score: number }>;
+    expect(results.length).toBeGreaterThan(0);
+    expect(typeof results[0]!.score).toBe('number');
+
     // 6. catalog search + audit
     const search = await server.app.inject({ method: 'GET', url: `/api/catalog/search?q=${OT}`, headers: a });
     expect((search.json().hits as Array<{ kind: string; name: string }>)).toContainEqual({ kind: 'objectType', name: OT });

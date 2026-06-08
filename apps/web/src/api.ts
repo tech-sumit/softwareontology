@@ -51,6 +51,8 @@ export const api = {
   createUser: (email: string, password: string, roleNames: string[] = []) => req<{ user: unknown }>('POST', '/admin/users', { email, password, roleNames }),
   aggregate: (objectType: string, groupBy: string) => req<{ buckets: Array<{ group: string; count: number }> }>('POST', '/dashboards/aggregate', { objectType, groupBy }),
   ask: (objectType: string, question: string) => req<{ answer: string }>('POST', '/aip/ask', { objectType, question }),
+  aipIndex: (objectType: string) => req<{ indexed: number }>('POST', '/aip/index', { objectType }),
+  aipSearch: (objectType: string, query: string, k = 10) => req<{ results: Array<{ primaryKey: string; score: number; doc: string }> }>('POST', '/aip/search', { objectType, query, k }),
   listApps: () => req<{ apps: Array<{ id: string; name: string }> }>('GET', '/apps'),
   getApp: (id: string) => req<{ id: string; name: string; definition: AppDefinition }>('GET', `/apps/${id}`),
   createApp: (name: string, definition: AppDefinition) => req<{ id: string }>('POST', '/apps', { name, definition }),

@@ -89,6 +89,7 @@ export const HELP: Record<string, HelpEntry> = {
   'console:ask': { title: 'Ask', steps: [
     'Ask a natural-language question over your ontology.',
     'The AIP gateway routes to the configured LLM provider and answers grounded in your objects.',
+    'Under Semantic search, pick a type, click Index once, then search it by meaning.',
   ]},
   'console:admin': { title: 'Admin', steps: [
     'Manage users, roles, and permissions here.',
