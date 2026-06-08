@@ -2,6 +2,7 @@ import { describe, it, expect, afterAll } from 'vitest';
 import { createServer, createConfig, type AppServer } from '@so/server';
 import { createLogger } from '@so/observability';
 import authModule from '@so/auth';
+import adminModule from '@so/admin';
 import projectsModule from '../src/index.js';
 
 const config = createConfig({
@@ -16,7 +17,7 @@ function cookieFrom(s: string | string[] | undefined): string { const raw = Arra
 
 describe('projects: CRUD + Default bootstrap', () => {
   it('bootstraps Default and creates/lists/gets projects', async () => {
-    server = await createServer({ modules: [authModule, projectsModule], logger: createLogger(), config });
+    server = await createServer({ modules: [authModule, projectsModule, adminModule], logger: createLogger(), config });
     await server.kernel.start();
     await server.app.ready();
     await server.kernel.ctx.db.query(`DELETE FROM projects WHERE name='Marketing'`);
@@ -72,5 +73,57 @@ describe('projects: CRUD + Default bootstrap', () => {
 
     // Default cannot be archived
     expect((await server.app.inject({ method: 'POST', url: '/api/projects/project_default/archive', headers: a })).statusCode).toBe(400);
+  });
+
+  it('enforces membership: visibility, owner-gated lifecycle & members, last-owner guard', async () => {
+    const db = server.kernel.ctx.db;
+    // clean slate for this test's fixtures
+    await db.query(`DELETE FROM project_members WHERE user_id IN (SELECT id FROM users WHERE email='member@example.com')`);
+    await db.query(`DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE email='member@example.com')`);
+    await db.query(`DELETE FROM user_roles WHERE user_id IN (SELECT id FROM users WHERE email='member@example.com')`);
+    await db.query(`DELETE FROM users WHERE email='member@example.com'`);
+    await db.query(`DELETE FROM role_permissions WHERE role_id IN (SELECT id FROM roles WHERE name='projuser')`);
+    await db.query(`DELETE FROM roles WHERE name='projuser'`);
+    await db.query(`DELETE FROM project_members WHERE project_id IN (SELECT id FROM projects WHERE name='Members')`);
+    await db.query(`DELETE FROM projects WHERE name='Members'`);
+
+    const aLogin = await server.app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'admin@example.com', password: 'admin' } });
+    const A = { cookie: cookieFrom(aLogin.headers['set-cookie']) };
+
+    // a non-admin role that can USE the projects API (global perms), then a user with it.
+    // Ensure the permission keys exist (projects module should register them; fall back to inserting them).
+    for (const k of ['projects:read', 'projects:write']) await db.query(`INSERT INTO permissions(key) VALUES ($1) ON CONFLICT DO NOTHING`, [k]);
+    await server.app.inject({ method: 'POST', url: '/api/admin/roles', headers: A, payload: { name: 'projuser', permissions: ['projects:read', 'projects:write'] } });
+    await server.app.inject({ method: 'POST', url: '/api/admin/users', headers: A, payload: { email: 'member@example.com', password: 'pw123456', roleNames: ['projuser'] } });
+
+    const users = (await server.app.inject({ method: 'GET', url: '/api/admin/users', headers: A })).json().users as Array<{ id: string; email: string }>;
+    const memberId = users.find((u) => u.email === 'member@example.com')!.id;
+    const adminId = users.find((u) => u.email === 'admin@example.com')!.id;
+
+    const pid = (await server.app.inject({ method: 'POST', url: '/api/projects', headers: A, payload: { name: 'Members' } })).json().id; // admin = owner
+
+    const mLogin = await server.app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'member@example.com', password: 'pw123456' } });
+    const M = { cookie: cookieFrom(mLogin.headers['set-cookie']) };
+
+    // not a member yet → invisible + 404
+    expect(((await server.app.inject({ method: 'GET', url: '/api/projects', headers: M })).json().projects as Array<{ id: string }>).some((p) => p.id === pid)).toBe(false);
+    expect((await server.app.inject({ method: 'GET', url: `/api/projects/${pid}`, headers: M })).statusCode).toBe(404);
+
+    // admin adds member as viewer
+    expect((await server.app.inject({ method: 'POST', url: `/api/projects/${pid}/members`, headers: A, payload: { userId: memberId, role: 'viewer' } })).statusCode).toBe(201);
+
+    // visible w/ role viewer; can GET; cannot rename or manage members
+    const listed = (await server.app.inject({ method: 'GET', url: '/api/projects', headers: M })).json().projects as Array<{ id: string; role: string }>;
+    expect(listed.find((p) => p.id === pid)?.role).toBe('viewer');
+    expect((await server.app.inject({ method: 'PATCH', url: `/api/projects/${pid}`, headers: M, payload: { name: 'Nope' } })).statusCode).toBe(403);
+    expect((await server.app.inject({ method: 'POST', url: `/api/projects/${pid}/members`, headers: M, payload: { userId: adminId, role: 'viewer' } })).statusCode).toBe(403);
+
+    // promote to owner → can rename now
+    expect((await server.app.inject({ method: 'PATCH', url: `/api/projects/${pid}/members/${memberId}`, headers: A, payload: { role: 'owner' } })).statusCode).toBe(200);
+    expect((await server.app.inject({ method: 'PATCH', url: `/api/projects/${pid}`, headers: M, payload: { name: 'Members' } })).statusCode).toBe(200);
+
+    // last-owner guard: drop admin (2 owners → 1 OK), then removing the sole owner fails
+    expect((await server.app.inject({ method: 'DELETE', url: `/api/projects/${pid}/members/${adminId}`, headers: A })).statusCode).toBe(200);
+    expect((await server.app.inject({ method: 'DELETE', url: `/api/projects/${pid}/members/${memberId}`, headers: A })).statusCode).toBe(400);
   });
 });

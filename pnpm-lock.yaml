@@ -729,6 +729,9 @@ importers:
         specifier: ^5.2.0
         version: 5.8.5
     devDependencies:
+      '@so/admin':
+        specifier: workspace:*
+        version: link:../admin
       '@so/observability':
         specifier: workspace:*
         version: link:../observability
