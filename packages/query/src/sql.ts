@@ -40,6 +40,9 @@ export function buildResolveSql(
   const pkProp = m.properties.find((p) => p.name === m.primaryKey);
   if (!pkProp) throw new Error(`primaryKey '${m.primaryKey}' not in properties`);
 
+  const branch = opts.branch ?? 'main';
+  if (!/^[A-Za-z0-9_-]+$/.test(branch)) throw new Error(`invalid branch: ${branch}`);
+
   const baseRef = `read_parquet('${m.backing.path}')`;
 
   const baseCols = m.properties
@@ -50,7 +53,7 @@ export function buildResolveSql(
         `(SELECT w.value FROM ${pgAlias}.public.object_writeback w ` +
         `WHERE w.object_type = '${ot}' ` +
         `AND w.primary_key = CAST(base."${ident(pkProp.column)}" AS VARCHAR) ` +
-        `AND w.property = '${prop}' ORDER BY w.version DESC LIMIT 1)`;
+        `AND w.property = '${prop}' AND w.branch = '${branch}' ORDER BY w.version DESC LIMIT 1)`;
       return `COALESCE(CAST(${overlay} AS ${DUCK_TYPE[p.type]}), base."${col}") AS "${prop}"`;
     })
     .join(',\n    ');
@@ -91,7 +94,7 @@ export function buildResolveSql(
   SELECT
     ${createdCols}
   FROM ${pgAlias}.public.object_created c
-  WHERE c.object_type = '${ot}'
+  WHERE c.object_type = '${ot}' AND c.branch = '${branch}'
 )
 SELECT ${projection} FROM resolved
 ${where}

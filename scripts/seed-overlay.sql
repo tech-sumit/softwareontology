@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS object_writeback (
   updated_at  timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (org_id, object_type, primary_key, property, version)
 );
+ALTER TABLE object_writeback ADD COLUMN IF NOT EXISTS branch text NOT NULL DEFAULT 'main';
 
 CREATE TABLE IF NOT EXISTS object_created (
   org_id      text        NOT NULL DEFAULT 'org_default',
@@ -19,6 +20,7 @@ CREATE TABLE IF NOT EXISTS object_created (
   created_at  timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (org_id, object_type, primary_key)
 );
+ALTER TABLE object_created ADD COLUMN IF NOT EXISTS branch text NOT NULL DEFAULT 'main';
 
 -- deterministic seed for the spike: wipe then insert
 TRUNCATE object_writeback;

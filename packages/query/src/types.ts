@@ -38,6 +38,7 @@ export interface ResolveOptions {
   filters?: Filter[];
   limit?: number;
   offset?: number;
+  branch?: string;
 }
 
 export interface S3Options {
