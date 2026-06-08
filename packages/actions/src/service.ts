@@ -27,7 +27,7 @@ export function createActionService(ctx: ModuleContext) {
     return rows.map((r) => ({ apiName: r.api_name, objectType: r.object_type, kind: r.kind as ActionKind }));
   }
 
-  async function execute(orgId: string, actorId: string, apiName: string, input: ExecuteInput): Promise<void> {
+  async function execute(orgId: string, actorId: string, apiName: string, input: ExecuteInput, branch = 'main'): Promise<void> {
     const defs = await ctx.db.query<{ object_type: string; kind: string }>(
       `SELECT object_type, kind FROM action_defs WHERE org_id = $1 AND api_name = $2`,
       [orgId, apiName],
@@ -53,9 +53,9 @@ export function createActionService(ctx: ModuleContext) {
           );
           const version = Number(verRows[0]?.v ?? 1);
           await tx.query(
-            `INSERT INTO object_writeback(org_id,object_type,primary_key,property,value,version,updated_by)
-             VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-            [orgId, def.object_type, input.primaryKey, prop, String(value), version, actorId],
+            `INSERT INTO object_writeback(org_id,object_type,primary_key,property,value,version,branch,updated_by)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+            [orgId, def.object_type, input.primaryKey, prop, String(value), version, branch, actorId],
           );
         }
         await tx.query(
@@ -69,8 +69,8 @@ export function createActionService(ctx: ModuleContext) {
       for (const k of Object.keys(properties)) if (!propNames.has(k)) throw new Error(`unknown property: ${k}`);
       await ctx.db.transaction(async (tx) => {
         await tx.query(
-          `INSERT INTO object_created(org_id,object_type,primary_key,payload,created_by) VALUES ($1,$2,$3,$4,$5)`,
-          [orgId, def.object_type, input.primaryKey, JSON.stringify(properties), actorId],
+          `INSERT INTO object_created(org_id,object_type,primary_key,payload,branch,created_by) VALUES ($1,$2,$3,$4,$5,$6)`,
+          [orgId, def.object_type, input.primaryKey, JSON.stringify(properties), branch, actorId],
         );
         await tx.query(
           `INSERT INTO audit_log(id,org_id,actor,action,object_type,primary_key,params)

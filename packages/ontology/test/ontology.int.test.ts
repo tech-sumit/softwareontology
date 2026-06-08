@@ -75,4 +75,32 @@ describe('ontology: define an object type and resolve its objects', () => {
     const res = await server.app.inject({ method: 'GET', url: '/api/ontology/object-types/Flight/objects' });
     expect(res.statusCode).toBe(401);
   });
+
+  it('branches: isolate edits, diff, and merge into main', async () => {
+    const db = server.kernel.ctx.db;
+    await db.query(`DELETE FROM object_writeback WHERE object_type='BR'`);
+    await db.query(`DELETE FROM object_created WHERE object_type='BR'`);
+    await db.query(`DELETE FROM branches WHERE name='feat1'`);
+    const login = await server.app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'admin@example.com', password: 'admin' } });
+    const cookie = cookieFrom(login.headers['set-cookie']);
+    const AUTH = { cookie };
+    // create a branch via the route
+    expect((await server.app.inject({ method: 'POST', url: '/api/ontology/branches', headers: AUTH, payload: { name: 'feat1' } })).statusCode).toBe(201);
+    // simulate an edit made on the branch (as actions.execute would)
+    await db.query(`INSERT INTO object_writeback(org_id,object_type,primary_key,property,value,version,branch,updated_by) VALUES ('org_default','BR','k1','status','Delayed',1,'feat1','t')`);
+    // diff shows the branch's edit
+    const diff = (await server.app.inject({ method: 'GET', url: '/api/ontology/branches/feat1/diff', headers: AUTH })).json();
+    expect(diff.edits.some((e: { primaryKey: string; value: string }) => e.primaryKey === 'k1' && e.value === 'Delayed')).toBe(true);
+    // main has no such writeback row yet
+    const mainBefore = await db.query(`SELECT 1 FROM object_writeback WHERE object_type='BR' AND primary_key='k1' AND branch='main'`);
+    expect(mainBefore.length).toBe(0);
+    // merge → main now carries the edit; branch marked merged
+    const m = (await server.app.inject({ method: 'POST', url: '/api/ontology/branches/feat1/merge', headers: AUTH })).json();
+    expect(m.merged).toBeGreaterThan(0);
+    const mainAfter = await db.query(`SELECT value FROM object_writeback WHERE object_type='BR' AND primary_key='k1' AND branch='main'`);
+    expect(mainAfter.length).toBe(1);
+    const branches = (await server.app.inject({ method: 'GET', url: '/api/ontology/branches', headers: AUTH })).json().branches as Array<{ name: string; status: string }>;
+    expect(branches.find((b) => b.name === 'feat1')?.status).toBe('merged');
+    expect(branches.find((b) => b.name === 'main')).toBeTruthy();
+  });
 });

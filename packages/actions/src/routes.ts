@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
+import { activeBranch } from '@so/sdk';
 import { requirePermission } from '@so/auth';
 import { createActionService, type ActionDefInput, type ExecuteInput } from './service.js';
 
@@ -26,7 +27,7 @@ export const actionRoutes: FastifyPluginAsync = async (fastify) => {
     const { apiName } = req.params as { apiName: string };
     const body = (req.body ?? {}) as ExecuteInput;
     try {
-      await svc.execute(req.user!.orgId, req.user!.id, apiName, body);
+      await svc.execute(req.user!.orgId, req.user!.id, apiName, body, activeBranch(req.headers));
       return reply.code(200).send({ ok: true });
     } catch (e) {
       return reply.code(400).send({ error: (e as Error).message });
