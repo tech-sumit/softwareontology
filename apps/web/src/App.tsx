@@ -24,10 +24,13 @@ import { CatalogView } from './views/CatalogView';
 import { ApiSdkView } from './views/ApiSdkView';
 import { HelpPanel } from './components/HelpPanel';
 import { HELP } from './help';
+import { Toast } from './components/Toast';
+import { ProjectSettings } from './views/ProjectSettings';
 
 const PROJECT_ITEMS: SideItem[] = [
   { id: 'overview', label: 'Overview', icon: '▦' }, { id: 'data', label: 'Data', icon: '▤' }, { id: 'setup', label: 'Upload & model', icon: '↥' },
   { id: 'pipelines', label: 'Pipelines', icon: '⑂' }, { id: 'connectors', label: 'Connectors', icon: '⇄' }, { id: 'apps', label: 'Apps', icon: '▥' }, { id: 'automations', label: 'Automations', icon: '⚡' },
+  { id: 'settings', label: 'Settings', icon: '⚙' },
 ];
 const CONSOLE_ITEMS: SideItem[] = [
   { id: 'home', label: 'Home', icon: '⌂' }, { id: 'ontology', label: 'Ontology Explorer', icon: '◎' }, { id: 'explorer', label: 'Object Explorer', icon: '◧' }, { id: 'lineage', label: 'Lineage', icon: '⇲' },
@@ -46,9 +49,12 @@ export function App() {
   const [view, setView] = useState('overview');
   const [rk, setRk] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [archived, setArchived] = useState<Array<{ id: string; name: string; description?: string }>>([]);
+  const [toast, setToast] = useState<{ message: string; kind: 'ok' | 'err' } | null>(null);
 
   useEffect(() => { api.me().then((r) => setUser(r.user)).catch(() => setUser(null)); }, []);
-  useEffect(() => { if (user) api.listProjects().then((r) => { setProjects(r.projects); const def = r.projects.find((p) => p.id === 'project_default') ?? r.projects[0]; if (def) { setProject(def.id); setActiveProject(def.id); } }).catch(() => {}); }, [user]);
+  useEffect(() => { if (user) Promise.all([api.listProjects(), api.listArchivedProjects()]).then(([r, ar]) => { setProjects(r.projects); setArchived(ar.projects); const def = r.projects.find((p) => p.id === 'project_default') ?? r.projects[0]; if (def) { setProject(def.id); setActiveProject(def.id); } }).catch(() => {}); }, [user]);
+  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 3500); return () => clearTimeout(t); }, [toast]);
 
   async function doLogin(email: string, password: string) { setLoginErr(''); try { await api.login(email, password); setUser((await api.me()).user); } catch (e) { setLoginErr((e as Error).message); } }
   async function doLogout() { await api.logout().catch(() => {}); setUser(null); }
@@ -56,6 +62,8 @@ export function App() {
   function openConsole() { setArea('console'); setView('home'); }
   function openSurface(id: string) { setArea('console'); setView(id); }
   function newProject() { setShowCreate(true); }
+  function notify(message: string, kind: 'ok' | 'err' = 'ok') { setToast({ message, kind }); }
+  async function reloadProjects() { try { const [r, ar] = await Promise.all([api.listProjects(), api.listArchivedProjects()]); setProjects(r.projects); setArchived(ar.projects); } catch { /* ignore */ } }
 
   if (!user) return <div className="wrap"><LoginForm onSubmit={doLogin} error={loginErr} onSso={() => { window.location.href = '/api/auth/oidc/login'; }} /></div>;
 
@@ -75,7 +83,7 @@ export function App() {
         case 'apisdk': return <ApiSdkView />;
         case 'ask': return <AskView />;
         case 'admin': return <AdminView />;
-        default: return <ConsoleHome projects={projects} onOpenProject={openProject} onNewProject={newProject} onOpenSurface={openSurface} />;
+        default: return <ConsoleHome projects={projects} archivedProjects={archived} onOpenProject={openProject} onNewProject={newProject} onOpenSurface={openSurface} onRestoreProject={async (id) => { try { await api.restoreProject(id); notify('Project restored.'); reloadProjects(); } catch (e) { notify((e as Error).message, 'err'); } }} />;
       }
     }
     switch (view) {
@@ -85,6 +93,7 @@ export function App() {
       case 'connectors': return <ConnectorsView key={k} />;
       case 'apps': return <AppsView key={k} />;
       case 'automations': return <AutomationsView key={k} />;
+      case 'settings': { const cur = projects.find((p) => p.id === project) ?? { id: project, name: projName }; return <ProjectSettings project={cur} isDefault={project === 'project_default'} onSaved={() => reloadProjects()} onArchived={() => { openConsole(); reloadProjects(); }} notify={notify} />; }
       default: return <ProjectOverview key={k} projectName={projName} onGo={setView} />;
     }
   })();
@@ -102,6 +111,7 @@ export function App() {
         <div className="content">{help ? <HelpPanel title={help.title} steps={help.steps} /> : null}{surface}</div>
       </div>
       {showCreate ? <CreateProjectModal onClose={() => setShowCreate(false)} onCreate={async (name, description) => { try { const { id } = await api.createProject(name, description); setProjects((await api.listProjects()).projects); setShowCreate(false); openProject(id); } catch { setShowCreate(false); } }} /> : null}
+      {toast ? <Toast message={toast.message} kind={toast.kind} onClose={() => setToast(null)} /> : null}
     </div>
   );
 }

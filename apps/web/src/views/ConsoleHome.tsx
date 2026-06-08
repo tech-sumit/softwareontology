@@ -9,8 +9,8 @@ const SHARED = [
   { id: 'ask', icon: '✦', name: 'Ask · AIP', desc: 'Ask over the ontology' },
   { id: 'admin', icon: '⚙', name: 'Admin', desc: 'Users & roles' },
 ];
-export function ConsoleHome({ projects, onOpenProject, onNewProject, onOpenSurface }: {
-  projects: Array<{ id: string; name: string }>; onOpenProject: (id: string) => void; onNewProject: () => void; onOpenSurface: (id: string) => void;
+export function ConsoleHome({ projects, archivedProjects, onOpenProject, onNewProject, onOpenSurface, onRestoreProject }: {
+  projects: Array<{ id: string; name: string }>; archivedProjects: Array<{ id: string; name: string }>; onOpenProject: (id: string) => void; onNewProject: () => void; onOpenSurface: (id: string) => void; onRestoreProject: (id: string) => void;
 }) {
   return (
     <>
@@ -27,6 +27,18 @@ export function ConsoleHome({ projects, onOpenProject, onNewProject, onOpenSurfa
           <div className="card pcard" style={{ borderStyle: 'dashed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--faint)', fontWeight: 600 }} onClick={onNewProject}>＋ New project</div>
         </div>
       </div>
+      {archivedProjects.length > 0 ? (
+        <div className="sec"><h3>Archived</h3>
+          <div className="grid pcards">
+            {archivedProjects.map((p) => (
+              <div key={p.id} className="card pcard" style={{ opacity: 0.65 }}>
+                <div className="ph"><div className="pdot" style={{ background: colorFor(p.id) }}>{p.name.slice(0, 1).toUpperCase()}</div><div className="pn">{p.name}</div></div>
+                <button className="sec" style={{ marginTop: 6 }} onClick={() => onRestoreProject(p.id)}>Restore</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <div className="sec"><h3>Shared · Platform</h3>
         <div className="grid tiles">
           {SHARED.map((s) => (<div key={s.id} className="card tile" onClick={() => onOpenSurface(s.id)}><div className="ti">{s.icon}</div><div className="tn">{s.name}</div><div className="td">{s.desc}</div></div>))}

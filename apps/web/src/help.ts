@@ -38,6 +38,12 @@ export const HELP: Record<string, HelpEntry> = {
     'Create one by choosing the trigger event and the action to run.',
     'Use automations to keep derived state in sync without manual steps.',
   ]},
+  'project:settings': { title: 'project settings', steps: [
+    'Rename the project or edit its description, then click “Save changes”.',
+    'Archiving hides a project from the workspace but preserves all its data.',
+    'Restore an archived project anytime from the Console’s Archived section.',
+    'The Default project cannot be archived.',
+  ]},
   // ---- Console context ----
   'console:home': { title: 'the Console', steps: [
     'The Console is your shared workspace across all projects.',
