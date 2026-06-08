@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, setActiveProject, type User } from './api';
+import { api, setActiveProject, setActiveBranch, type User } from './api';
 import { LoginForm } from './components/LoginForm';
 import { CreateProjectModal } from './components/CreateProjectModal';
 import { WorkspaceRail, colorFor } from './components/WorkspaceRail';
@@ -26,6 +26,7 @@ import { HelpPanel } from './components/HelpPanel';
 import { HELP } from './help';
 import { Toast } from './components/Toast';
 import { ProjectSettings } from './views/ProjectSettings';
+import { BranchesView } from './views/BranchesView';
 
 const PROJECT_ITEMS: SideItem[] = [
   { id: 'overview', label: 'Overview', icon: '▦' }, { id: 'data', label: 'Data', icon: '▤' }, { id: 'setup', label: 'Upload & model', icon: '↥' },
@@ -33,7 +34,7 @@ const PROJECT_ITEMS: SideItem[] = [
   { id: 'settings', label: 'Settings', icon: '⚙' },
 ];
 const CONSOLE_ITEMS: SideItem[] = [
-  { id: 'home', label: 'Home', icon: '⌂' }, { id: 'ontology', label: 'Ontology Explorer', icon: '◎' }, { id: 'explorer', label: 'Object Explorer', icon: '◧' }, { id: 'lineage', label: 'Lineage', icon: '⇲' },
+  { id: 'home', label: 'Home', icon: '⌂' }, { id: 'ontology', label: 'Ontology Explorer', icon: '◎' }, { id: 'explorer', label: 'Object Explorer', icon: '◧' }, { id: 'branches', label: 'Branches', icon: '⎇' }, { id: 'lineage', label: 'Lineage', icon: '⇲' },
   { id: 'catalog', label: 'Catalog', icon: '≣' }, { id: 'dashboards', label: 'Dashboards', icon: '▦' }, { id: 'governance', label: 'Governance', icon: '🛡' },
   { id: 'apisdk', label: 'API & SDK', icon: '{}' }, { id: 'ask', label: 'Ask', icon: '✦' }, { id: 'admin', label: 'Admin', icon: '⚙' },
 ];
@@ -51,8 +52,11 @@ export function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [archived, setArchived] = useState<Array<{ id: string; name: string; description?: string; role?: 'owner' | 'editor' | 'viewer' | 'admin' }>>([]);
   const [toast, setToast] = useState<{ message: string; kind: 'ok' | 'err' } | null>(null);
+  const [branch, setBranch] = useState('main');
+  const [branches, setBranches] = useState<Array<{ name: string; status: string }>>([]);
 
   useEffect(() => { api.me().then((r) => setUser(r.user)).catch(() => setUser(null)); }, []);
+  useEffect(() => { if (user) api.listBranches().then((r) => setBranches(r.branches)).catch(() => {}); }, [user]);
   useEffect(() => { if (user) Promise.all([api.listProjects(), api.listArchivedProjects()]).then(([r, ar]) => { setProjects(r.projects); setArchived(ar.projects); const def = r.projects.find((p) => p.id === 'project_default') ?? r.projects[0]; if (def) { setProject(def.id); setActiveProject(def.id); } }).catch(() => {}); }, [user]);
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 3500); return () => clearTimeout(t); }, [toast]);
 
@@ -64,6 +68,8 @@ export function App() {
   function newProject() { setShowCreate(true); }
   function notify(message: string, kind: 'ok' | 'err' = 'ok') { setToast({ message, kind }); }
   async function reloadProjects() { try { const [r, ar] = await Promise.all([api.listProjects(), api.listArchivedProjects()]); setProjects(r.projects); setArchived(ar.projects); } catch { /* ignore */ } }
+  function reloadBranches() { api.listBranches().then((r) => setBranches(r.branches)).catch(() => {}); }
+  function changeBranch(b: string) { setActiveBranch(b); setBranch(b); }
 
   if (!user) return <div className="wrap"><LoginForm onSubmit={doLogin} error={loginErr} onSso={() => { window.location.href = '/api/auth/oidc/login'; }} /></div>;
 
@@ -74,14 +80,15 @@ export function App() {
   const surface = (() => {
     if (area === 'console') {
       switch (view) {
-        case 'ontology': return <OntologyManager />;
-        case 'explorer': return <ObjectExplorer />;
+        case 'ontology': return <OntologyManager key={branch} />;
+        case 'explorer': return <ObjectExplorer key={branch} />;
+        case 'branches': return <BranchesView notify={notify} onChanged={reloadBranches} />;
         case 'lineage': return <LineageView />;
         case 'catalog': return <CatalogView initialQuery={searchQuery} key={searchQuery} />;
         case 'dashboards': return <DashboardsView />;
         case 'governance': return <GovernanceView />;
         case 'apisdk': return <ApiSdkView />;
-        case 'ask': return <AskView />;
+        case 'ask': return <AskView key={branch} />;
         case 'admin': return <AdminView />;
         default: return <ConsoleHome projects={projects} archivedProjects={archived} onOpenProject={openProject} onNewProject={newProject} onOpenSurface={openSurface} onRestoreProject={async (id) => { try { await api.restoreProject(id); notify('Project restored.'); reloadProjects(); } catch (e) { notify((e as Error).message, 'err'); } }} />;
       }
@@ -107,7 +114,7 @@ export function App() {
         ? <ContextSidebar header={{ title: 'Console' }} items={CONSOLE_ITEMS} active={view} onSelect={(v) => (v === 'home' ? openConsole() : openSurface(v))} />
         : <ContextSidebar header={{ title: projName, subtitle: 'Project workspace', dotColor: colorFor(project) }} items={PROJECT_ITEMS} active={view} onSelect={setView} />}
       <div className="main">
-        <TopBar breadcrumb={breadcrumb} userEmail={user.email} onSignOut={doLogout} onSearch={(q) => { setArea('console'); setView('catalog'); setSearchQuery(q); }} />
+        <TopBar breadcrumb={breadcrumb} userEmail={user.email} onSignOut={doLogout} onSearch={(q) => { setArea('console'); setView('catalog'); setSearchQuery(q); }} branch={branch} branches={branches} onBranchChange={changeBranch} />
         <div className="content">{help ? <HelpPanel title={help.title} steps={help.steps} /> : null}{surface}</div>
       </div>
       {showCreate ? <CreateProjectModal onClose={() => setShowCreate(false)} onCreate={async (name, description) => { try { const { id } = await api.createProject(name, description); setProjects((await api.listProjects()).projects); setShowCreate(false); openProject(id); } catch { setShowCreate(false); } }} /> : null}

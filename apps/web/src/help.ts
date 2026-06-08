@@ -92,6 +92,12 @@ export const HELP: Record<string, HelpEntry> = {
     'Under Semantic search, pick a type, click Index once, then search it by meaning.',
     'Ask the agent a question — it chooses tools over your ontology and shows the steps it took.',
   ]},
+  'console:branches': { title: 'Branches', steps: [
+    'A branch isolates edits you make through Actions, on top of the shared base data.',
+    'Create a branch here, then switch to it using the ⎇ selector in the top bar.',
+    'Work in the Object Explorer (run actions) — your changes stay on the branch.',
+    'Come back here to review the diff and Merge into main, or Discard the branch.',
+  ]},
   'console:admin': { title: 'Admin', steps: [
     'Manage users, roles, and permissions here.',
     'Create a role with a set of permissions, then create users and assign them roles.',

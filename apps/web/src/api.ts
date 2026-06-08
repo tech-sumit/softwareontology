@@ -12,8 +12,12 @@ let currentProjectId = 'project_default';
 export function setActiveProject(id: string): void { currentProjectId = id; }
 export function getActiveProject(): string { return currentProjectId; }
 
+let currentBranch = 'main';
+export function setActiveBranch(b: string): void { currentBranch = b || 'main'; }
+export function getActiveBranch(): string { return currentBranch; }
+
 async function req<T>(method: string, path: string, body?: unknown, asText = false): Promise<T> {
-  const headers: Record<string, string> = { 'x-project': currentProjectId };
+  const headers: Record<string, string> = { 'x-project': currentProjectId, 'x-branch': currentBranch };
   const init: RequestInit = { method, credentials: 'include', headers };
   if (body !== undefined) {
     headers['content-type'] = asText ? 'text/csv' : 'application/json';
@@ -109,4 +113,10 @@ export const api = {
   catalogSearch: (q: string) => req<{ hits: SearchHit[] }>('GET', `/catalog/search?q=${encodeURIComponent(q)}`),
   // openapi: full OpenAPI 3.1 doc keyed by path → { method: opObj }
   openapiSpec: () => req<OpenApiSpec>('GET', '/openapi/spec'),
+  // branches: list/create/diff/merge/delete on top of base data
+  listBranches: () => req<{ branches: Array<{ name: string; status: string; createdAt: string | null }> }>('GET', '/ontology/branches'),
+  createBranch: (name: string) => req<{ ok: boolean }>('POST', '/ontology/branches', { name }),
+  branchDiff: (name: string) => req<{ edits: Array<{ objectType: string; primaryKey: string; property: string; value: string | null }>; creates: Array<{ objectType: string; primaryKey: string }> }>('GET', `/ontology/branches/${name}/diff`),
+  mergeBranch: (name: string) => req<{ merged: number }>('POST', `/ontology/branches/${name}/merge`),
+  deleteBranch: (name: string) => req<{ ok: boolean }>('DELETE', `/ontology/branches/${name}`),
 };

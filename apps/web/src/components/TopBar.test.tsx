@@ -18,4 +18,11 @@ describe('TopBar', () => {
     fireEvent.keyDown(box, { key: 'Enter' });
     expect(onSearch).toHaveBeenCalledWith('flights');
   });
+
+  it('switches branch', () => {
+    const onBranchChange = vi.fn();
+    render(<TopBar breadcrumb={['Console']} userEmail="a@x.com" onSignOut={() => {}} branch="main" branches={[{ name: 'main', status: 'main' }, { name: 'feat', status: 'open' }]} onBranchChange={onBranchChange} />);
+    fireEvent.change(screen.getByLabelText('branch'), { target: { value: 'feat' } });
+    expect(onBranchChange).toHaveBeenCalledWith('feat');
+  });
 });
