@@ -124,6 +124,14 @@ describe('E2E: full platform journey (all 13 modules)', () => {
     expect(results.length).toBeGreaterThan(0);
     expect(typeof results[0]!.score).toBe('number');
 
+    // 5c. AIP agent: picks tools over the ontology; under echo it falls back to semantic search of the referenced type
+    const ag = await server.app.inject({ method: 'POST', url: '/api/aip/agent', headers: a, payload: { question: 'Which E2EFlight are Delayed?' } });
+    expect(ag.statusCode).toBe(200);
+    const aj = ag.json() as { answer: string; steps: Array<{ tool: string }> };
+    expect(typeof aj.answer).toBe('string');
+    expect(aj.answer.length).toBeGreaterThan(0);
+    expect(aj.steps.some((s) => s.tool === 'search')).toBe(true);
+
     // 6. catalog search + audit
     const search = await server.app.inject({ method: 'GET', url: `/api/catalog/search?q=${OT}`, headers: a });
     expect((search.json().hits as Array<{ kind: string; name: string }>)).toContainEqual({ kind: 'objectType', name: OT });
