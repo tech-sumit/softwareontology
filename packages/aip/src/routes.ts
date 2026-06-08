@@ -17,4 +17,18 @@ export const aipRoutes: FastifyPluginAsync = async (fastify) => {
     try { return { answer: await svc.ask(req.user!.orgId, body.objectType, body.question) }; }
     catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
   });
+
+  fastify.post('/index', { preHandler: requirePermission('aip:use') }, async (req, reply) => {
+    const b = req.body as { objectType?: string };
+    if (!b?.objectType) return reply.code(400).send({ error: 'objectType required' });
+    try { return reply.send(await svc.indexObjectType(req.user!.orgId, b.objectType)); }
+    catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
+  });
+
+  fastify.post('/search', { preHandler: requirePermission('aip:use') }, async (req, reply) => {
+    const b = req.body as { objectType?: string; query?: string; k?: number };
+    if (!b?.objectType || !b?.query) return reply.code(400).send({ error: 'objectType and query required' });
+    try { return reply.send({ results: await svc.search(req.user!.orgId, b.objectType, b.query, b.k ?? 10) }); }
+    catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
+  });
 };
