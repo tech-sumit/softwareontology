@@ -59,6 +59,20 @@ const MIGRATIONS = [
      PRIMARY KEY (org_id, object_type, primary_key)
    )`,
   `ALTER TABLE object_properties ADD COLUMN IF NOT EXISTS required_permission text`,
+  `ALTER TABLE object_writeback ADD COLUMN IF NOT EXISTS branch text NOT NULL DEFAULT 'main'`,
+  `ALTER TABLE object_created ADD COLUMN IF NOT EXISTS branch text NOT NULL DEFAULT 'main'`,
+  `DO $$ BEGIN
+     IF EXISTS (SELECT 1 FROM information_schema.key_column_usage WHERE table_name='object_created' AND constraint_name='object_created_pkey' AND column_name='primary_key')
+        AND NOT EXISTS (SELECT 1 FROM information_schema.key_column_usage WHERE table_name='object_created' AND constraint_name='object_created_pkey' AND column_name='branch') THEN
+       ALTER TABLE object_created DROP CONSTRAINT object_created_pkey;
+       ALTER TABLE object_created ADD PRIMARY KEY (org_id, object_type, primary_key, branch);
+     END IF;
+   END $$`,
+  `CREATE TABLE IF NOT EXISTS branches (
+     id text PRIMARY KEY, org_id text NOT NULL, name text NOT NULL,
+     status text NOT NULL DEFAULT 'open', created_by text,
+     created_at timestamptz NOT NULL DEFAULT now(), UNIQUE (org_id, name)
+   )`,
 ];
 
 export async function runMigrations(db: Db): Promise<void> {

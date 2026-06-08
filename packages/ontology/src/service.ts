@@ -4,6 +4,7 @@ import { resolveObjectSet, type ObjectTypeMapping, type PropType, type Filter } 
 import { createDatasetService } from '@so/datasets';
 
 const NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const BRANCH_RE = /^[A-Za-z0-9_-]+$/;
 const VALID_TYPES: ReadonlySet<string> = new Set(['string', 'int', 'float', 'bool', 'timestamp']);
 
 export interface PropertyInput { apiName: string; column: string; type: PropType; requiredPermission?: string | null; }
@@ -94,7 +95,7 @@ export function createOntologyService(ctx: ModuleContext) {
     );
   }
 
-  async function resolveLinkedObjects(orgId: string, fromType: string, fromPk: string, linkApiName: string): Promise<Record<string, unknown>[]> {
+  async function resolveLinkedObjects(orgId: string, fromType: string, fromPk: string, linkApiName: string, branch = 'main'): Promise<Record<string, unknown>[]> {
     const fromOt = await getObjectType(orgId, fromType);
     if (!fromOt) throw new Error(`object type not found: ${fromType}`);
     const links = await ctx.db.query<{ to_object_type_id: string; foreign_key_property: string }>(
@@ -109,13 +110,13 @@ export function createOntologyService(ctx: ModuleContext) {
     const toOt = await getObjectType(orgId, toApiName);
     if (!toOt) throw new Error('target object type missing');
 
-    const fromObjs = await resolveObjects(orgId, fromType, { filters: [{ property: fromOt.primaryKey, op: '=', value: fromPk }] });
+    const fromObjs = await resolveObjects(orgId, fromType, { filters: [{ property: fromOt.primaryKey, op: '=', value: fromPk }], branch });
     const fromObj = fromObjs[0];
     if (!fromObj) return [];
     const fkValue = fromObj[link.foreign_key_property];
     if (fkValue === null || fkValue === undefined) return [];
 
-    return resolveObjects(orgId, toApiName, { filters: [{ property: toOt.primaryKey, op: '=', value: fkValue as string | number | boolean }] });
+    return resolveObjects(orgId, toApiName, { filters: [{ property: toOt.primaryKey, op: '=', value: fkValue as string | number | boolean }], branch });
   }
 
   async function createFunction(orgId: string, objectType: string, input: FunctionInput): Promise<void> {
@@ -162,7 +163,7 @@ export function createOntologyService(ctx: ModuleContext) {
   async function resolveObjects(
     orgId: string,
     apiName: string,
-    options?: { filters?: Filter[]; limit?: number; offset?: number },
+    options?: { filters?: Filter[]; limit?: number; offset?: number; branch?: string },
   ): Promise<Record<string, unknown>[]> {
     const ot = await getObjectType(orgId, apiName);
     if (!ot) throw new Error(`object type not found: ${apiName}`);
@@ -195,5 +196,56 @@ export function createOntologyService(ctx: ModuleContext) {
     });
   }
 
-  return { createObjectType, listObjectTypes, getObjectType, createLinkType, listLinkTypes, resolveObjects, createFunction, setPropertySecurity, resolveLinkedObjects };
+  async function listBranches(orgId: string): Promise<Array<{ name: string; status: string; createdAt: string | null }>> {
+    const rows = await ctx.db.query<{ name: string; status: string; created_at: string }>(`SELECT name, status, created_at FROM branches WHERE org_id = $1 ORDER BY created_at DESC`, [orgId]);
+    return [{ name: 'main', status: 'main', createdAt: null }, ...rows.map((r) => ({ name: r.name, status: r.status, createdAt: r.created_at }))];
+  }
+  async function createBranch(orgId: string, name: string, createdBy: string): Promise<void> {
+    if (!BRANCH_RE.test(name) || name === 'main') throw new Error('invalid branch name');
+    await ctx.db.query(`INSERT INTO branches(id,org_id,name,created_by) VALUES ($1,$2,$3,$4) ON CONFLICT (org_id,name) DO NOTHING`, [randomUUID(), orgId, name, createdBy]);
+  }
+  async function diffBranch(orgId: string, name: string): Promise<{ edits: Array<{ objectType: string; primaryKey: string; property: string; value: string | null }>; creates: Array<{ objectType: string; primaryKey: string }> }> {
+    if (!BRANCH_RE.test(name)) throw new Error('invalid branch name');
+    const edits = await ctx.db.query<{ object_type: string; primary_key: string; property: string; value: string | null }>(
+      `SELECT object_type, primary_key, property, value FROM object_writeback w WHERE org_id=$1 AND branch=$2
+         AND version = (SELECT MAX(version) FROM object_writeback w2 WHERE w2.org_id=w.org_id AND w2.object_type=w.object_type AND w2.primary_key=w.primary_key AND w2.property=w.property AND w2.branch=$2)
+       ORDER BY object_type, primary_key, property`, [orgId, name]);
+    const creates = await ctx.db.query<{ object_type: string; primary_key: string }>(
+      `SELECT object_type, primary_key FROM object_created WHERE org_id=$1 AND branch=$2 ORDER BY object_type, primary_key`, [orgId, name]);
+    return {
+      edits: edits.map((e) => ({ objectType: e.object_type, primaryKey: e.primary_key, property: e.property, value: e.value })),
+      creates: creates.map((c) => ({ objectType: c.object_type, primaryKey: c.primary_key })),
+    };
+  }
+  async function mergeBranch(orgId: string, name: string, actor: string): Promise<{ merged: number }> {
+    if (!BRANCH_RE.test(name) || name === 'main') throw new Error('cannot merge this branch');
+    let merged = 0;
+    await ctx.db.transaction(async (tx) => {
+      const edits = await tx.query<{ object_type: string; primary_key: string; property: string; value: string | null }>(
+        `SELECT object_type, primary_key, property, value FROM object_writeback w WHERE org_id=$1 AND branch=$2
+           AND version = (SELECT MAX(version) FROM object_writeback w2 WHERE w2.org_id=w.org_id AND w2.object_type=w.object_type AND w2.primary_key=w.primary_key AND w2.property=w.property AND w2.branch=$2)`, [orgId, name]);
+      for (const e of edits) {
+        const v = await tx.query<{ v: number }>(`SELECT COALESCE(MAX(version),0)+1 AS v FROM object_writeback WHERE org_id=$1 AND object_type=$2 AND primary_key=$3 AND property=$4`, [orgId, e.object_type, e.primary_key, e.property]);
+        await tx.query(`INSERT INTO object_writeback(org_id,object_type,primary_key,property,value,version,branch,updated_by) VALUES ($1,$2,$3,$4,$5,$6,'main',$7)`, [orgId, e.object_type, e.primary_key, e.property, e.value, Number(v[0]?.v ?? 1), actor]);
+        merged++;
+      }
+      const creates = await tx.query<{ object_type: string; primary_key: string; payload: unknown }>(`SELECT object_type, primary_key, payload FROM object_created WHERE org_id=$1 AND branch=$2`, [orgId, name]);
+      for (const c of creates) {
+        await tx.query(`INSERT INTO object_created(org_id,object_type,primary_key,payload,branch,created_by) VALUES ($1,$2,$3,$4,'main',$5) ON CONFLICT (org_id,object_type,primary_key,branch) DO UPDATE SET payload=EXCLUDED.payload`, [orgId, c.object_type, c.primary_key, JSON.stringify(c.payload), actor]);
+        merged++;
+      }
+      await tx.query(`UPDATE branches SET status='merged' WHERE org_id=$1 AND name=$2`, [orgId, name]);
+    });
+    return { merged };
+  }
+  async function deleteBranch(orgId: string, name: string): Promise<void> {
+    if (!BRANCH_RE.test(name) || name === 'main') throw new Error('cannot delete this branch');
+    await ctx.db.transaction(async (tx) => {
+      await tx.query(`DELETE FROM object_writeback WHERE org_id=$1 AND branch=$2`, [orgId, name]);
+      await tx.query(`DELETE FROM object_created WHERE org_id=$1 AND branch=$2`, [orgId, name]);
+      await tx.query(`DELETE FROM branches WHERE org_id=$1 AND name=$2`, [orgId, name]);
+    });
+  }
+
+  return { createObjectType, listObjectTypes, getObjectType, createLinkType, listLinkTypes, resolveObjects, createFunction, setPropertySecurity, resolveLinkedObjects, listBranches, createBranch, diffBranch, mergeBranch, deleteBranch };
 }

@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import type { DatasetAccessPolicy } from '@so/sdk';
+import { activeBranch } from '@so/sdk';
 import { requirePermission, hasPermission } from '@so/auth';
 import { createOntologyService, type ObjectTypeInput } from './service.js';
 
@@ -47,7 +48,7 @@ export const ontologyRoutes: FastifyPluginAsync = async (fastify) => {
       }
       const perms = req.user!.permissions;
       const masked = ot.properties.filter((p) => p.requiredPermission && !hasPermission(perms, p.requiredPermission)).map((p) => p.apiName);
-      const objects = await svc.resolveObjects(req.user!.orgId, apiName, { limit: Number(q.limit ?? 100), offset: Number(q.offset ?? 0) });
+      const objects = await svc.resolveObjects(req.user!.orgId, apiName, { limit: Number(q.limit ?? 100), offset: Number(q.offset ?? 0), branch: activeBranch(req.headers) });
       const result = masked.length === 0 ? objects : objects.map((o) => { for (const m of masked) delete o[m]; return o; });
       return { objects: result };
     } catch (e) {
@@ -92,7 +93,27 @@ export const ontologyRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/object-types/:apiName/objects/:pk/links/:linkApiName', { preHandler: requirePermission('ontology:read') }, async (req, reply) => {
     const { apiName, pk, linkApiName } = req.params as { apiName: string; pk: string; linkApiName: string };
     try {
-      return { objects: await svc.resolveLinkedObjects(req.user!.orgId, apiName, pk, linkApiName) };
+      return { objects: await svc.resolveLinkedObjects(req.user!.orgId, apiName, pk, linkApiName, activeBranch(req.headers)) };
     } catch (e) { return reply.code(404).send({ error: (e as Error).message }); }
+  });
+
+  fastify.get('/branches', { preHandler: requirePermission('ontology:read') }, async (req) => ({ branches: await svc.listBranches(req.user!.orgId) }));
+  fastify.post('/branches', { preHandler: requirePermission('ontology:edit') }, async (req, reply) => {
+    const b = req.body as { name?: string };
+    if (!b?.name) return reply.code(400).send({ error: 'name required' });
+    try { await svc.createBranch(req.user!.orgId, b.name, req.user!.id); return reply.code(201).send({ ok: true }); }
+    catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
+  });
+  fastify.get('/branches/:name/diff', { preHandler: requirePermission('ontology:read') }, async (req, reply) => {
+    const { name } = req.params as { name: string };
+    try { return reply.send(await svc.diffBranch(req.user!.orgId, name)); } catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
+  });
+  fastify.post('/branches/:name/merge', { preHandler: requirePermission('ontology:edit') }, async (req, reply) => {
+    const { name } = req.params as { name: string };
+    try { return reply.send(await svc.mergeBranch(req.user!.orgId, name, req.user!.id)); } catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
+  });
+  fastify.delete('/branches/:name', { preHandler: requirePermission('ontology:edit') }, async (req, reply) => {
+    const { name } = req.params as { name: string };
+    try { await svc.deleteBranch(req.user!.orgId, name); return reply.send({ ok: true }); } catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
   });
 };
