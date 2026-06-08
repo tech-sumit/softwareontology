@@ -40,6 +40,8 @@ export const HELP: Record<string, HelpEntry> = {
   ]},
   'project:settings': { title: 'project settings', steps: [
     'Rename the project or edit its description, then click “Save changes”.',
+    'Add teammates under Members and set each one as viewer, editor, or owner.',
+    'Only owners (and admins) can rename, archive, or manage members.',
     'Archiving hides a project from the workspace but preserves all its data.',
     'Restore an archived project anytime from the Console’s Archived section.',
     'The Default project cannot be archived.',

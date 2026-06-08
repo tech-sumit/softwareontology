@@ -42,14 +42,14 @@ const labelOf = (items: SideItem[], id: string): string => items.find((i) => i.i
 export function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loginErr, setLoginErr] = useState('');
-  const [projects, setProjects] = useState<Array<{ id: string; name: string; description?: string }>>([]);
+  const [projects, setProjects] = useState<Array<{ id: string; name: string; description?: string; role?: 'owner' | 'editor' | 'viewer' | 'admin' }>>([]);
   const [project, setProject] = useState('project_default');
   const [showCreate, setShowCreate] = useState(false);
   const [area, setArea] = useState<'console' | 'project'>('project');
   const [view, setView] = useState('overview');
   const [rk, setRk] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  const [archived, setArchived] = useState<Array<{ id: string; name: string; description?: string }>>([]);
+  const [archived, setArchived] = useState<Array<{ id: string; name: string; description?: string; role?: 'owner' | 'editor' | 'viewer' | 'admin' }>>([]);
   const [toast, setToast] = useState<{ message: string; kind: 'ok' | 'err' } | null>(null);
 
   useEffect(() => { api.me().then((r) => setUser(r.user)).catch(() => setUser(null)); }, []);
@@ -93,7 +93,7 @@ export function App() {
       case 'connectors': return <ConnectorsView key={k} />;
       case 'apps': return <AppsView key={k} />;
       case 'automations': return <AutomationsView key={k} />;
-      case 'settings': { const cur = projects.find((p) => p.id === project) ?? { id: project, name: projName }; return <ProjectSettings project={cur} isDefault={project === 'project_default'} onSaved={() => reloadProjects()} onArchived={() => { openConsole(); reloadProjects(); }} notify={notify} />; }
+      case 'settings': { const cur = projects.find((p) => p.id === project); return <ProjectSettings project={cur ?? { id: project, name: projName }} isDefault={project === 'project_default'} role={cur?.role} onSaved={() => reloadProjects()} onArchived={() => { openConsole(); reloadProjects(); }} notify={notify} />; }
       default: return <ProjectOverview key={k} projectName={projName} onGo={setView} />;
     }
   })();
