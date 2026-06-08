@@ -16,7 +16,11 @@ export function createProjectService(ctx: ModuleContext) {
   }
 
   async function listProjects(orgId: string): Promise<Project[]> {
-    return ctx.db.query<Project>(`SELECT id, name, description FROM projects WHERE org_id = $1 ORDER BY (id = 'project_default') DESC, name`, [orgId]);
+    return ctx.db.query<Project>(`SELECT id, name, description FROM projects WHERE org_id = $1 AND archived = false ORDER BY (id = 'project_default') DESC, name`, [orgId]);
+  }
+
+  async function listArchivedProjects(orgId: string): Promise<Project[]> {
+    return ctx.db.query<Project>(`SELECT id, name, description FROM projects WHERE org_id = $1 AND archived = true ORDER BY name`, [orgId]);
   }
 
   async function getProject(orgId: string, id: string): Promise<Project | null> {
@@ -24,5 +28,23 @@ export function createProjectService(ctx: ModuleContext) {
     return rows[0] ?? null;
   }
 
-  return { createProject, listProjects, getProject };
+  async function updateProject(orgId: string, id: string, patch: { name?: string; description?: string }): Promise<Project | null> {
+    if (patch.name !== undefined && (!patch.name || !NAME_RE.test(patch.name))) throw new Error('invalid project name');
+    const sets: string[] = []; const vals: unknown[] = [];
+    if (patch.name !== undefined) { vals.push(patch.name); sets.push(`name = $${vals.length}`); }
+    if (patch.description !== undefined) { vals.push(patch.description); sets.push(`description = $${vals.length}`); }
+    if (sets.length === 0) return getProject(orgId, id);
+    vals.push(orgId); const orgIdx = vals.length;
+    vals.push(id); const idIdx = vals.length;
+    const rows = await ctx.db.query<Project>(`UPDATE projects SET ${sets.join(', ')} WHERE org_id = $${orgIdx} AND id = $${idIdx} RETURNING id, name, description`, vals);
+    return rows[0] ?? null;
+  }
+
+  async function setArchived(orgId: string, id: string, archived: boolean): Promise<boolean> {
+    if (id === 'project_default') throw new Error('the Default project cannot be archived');
+    const rows = await ctx.db.query<{ id: string }>(`UPDATE projects SET archived = $1 WHERE org_id = $2 AND id = $3 RETURNING id`, [archived, orgId, id]);
+    return Boolean(rows[0]);
+  }
+
+  return { createProject, listProjects, getProject, listArchivedProjects, updateProject, setArchived };
 }

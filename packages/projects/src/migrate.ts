@@ -10,6 +10,7 @@ const MIGRATIONS = [
   )`,
   `INSERT INTO projects(id, org_id, name) VALUES ('project_default', 'org_default', 'Default') ON CONFLICT DO NOTHING`,
   `ALTER TABLE projects ADD COLUMN IF NOT EXISTS description text`,
+  `ALTER TABLE projects ADD COLUMN IF NOT EXISTS archived boolean NOT NULL DEFAULT false`,
 ];
 
 export async function runMigrations(db: Db): Promise<void> {

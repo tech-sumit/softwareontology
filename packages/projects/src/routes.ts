@@ -19,4 +19,25 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
     const p = await svc.getProject(req.user!.orgId, id);
     return p ? reply.send(p) : reply.code(404).send({ error: 'project not found' });
   });
+
+  fastify.get('/archived', { preHandler: requirePermission('projects:read') }, async (req) => ({ projects: await svc.listArchivedProjects(req.user!.orgId) }));
+
+  fastify.patch('/:id', { preHandler: requirePermission('projects:write') }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const b = (req.body ?? {}) as { name?: string; description?: string };
+    try { const p = await svc.updateProject(req.user!.orgId, id, b); return p ? reply.send(p) : reply.code(404).send({ error: 'project not found' }); }
+    catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
+  });
+
+  fastify.post('/:id/archive', { preHandler: requirePermission('projects:write') }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    try { const ok = await svc.setArchived(req.user!.orgId, id, true); return ok ? reply.send({ ok: true }) : reply.code(404).send({ error: 'project not found' }); }
+    catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
+  });
+
+  fastify.post('/:id/restore', { preHandler: requirePermission('projects:write') }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    try { const ok = await svc.setArchived(req.user!.orgId, id, false); return ok ? reply.send({ ok: true }) : reply.code(404).send({ error: 'project not found' }); }
+    catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
+  });
 };

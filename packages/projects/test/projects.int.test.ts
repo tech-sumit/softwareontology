@@ -44,4 +44,33 @@ describe('projects: CRUD + Default bootstrap', () => {
     const again = await server.app.inject({ method: 'POST', url: '/api/projects', headers: a, payload: { name: 'Marketing' } });
     expect(again.json().id).toBe(id);
   });
+
+  it('renames, archives (hiding from list), and restores — but never the Default', async () => {
+    await server.kernel.ctx.db.query(`DELETE FROM projects WHERE name IN ('Lifecycle','Lifecycle2')`);
+    const login = await server.app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'admin@example.com', password: 'admin' } });
+    const a = { cookie: cookieFrom(login.headers['set-cookie']) };
+
+    const id = (await server.app.inject({ method: 'POST', url: '/api/projects', headers: a, payload: { name: 'Lifecycle' } })).json().id;
+
+    // rename + describe
+    const patched = await server.app.inject({ method: 'PATCH', url: `/api/projects/${id}`, headers: a, payload: { name: 'Lifecycle2', description: 'desc' } });
+    expect(patched.statusCode).toBe(200);
+    expect(patched.json().name).toBe('Lifecycle2');
+    expect(patched.json().description).toBe('desc');
+
+    // archive → gone from list, present in archived
+    expect((await server.app.inject({ method: 'POST', url: `/api/projects/${id}/archive`, headers: a })).statusCode).toBe(200);
+    const listed = (await server.app.inject({ method: 'GET', url: '/api/projects', headers: a })).json().projects as Array<{ id: string }>;
+    expect(listed.some((p) => p.id === id)).toBe(false);
+    const archived = (await server.app.inject({ method: 'GET', url: '/api/projects/archived', headers: a })).json().projects as Array<{ id: string }>;
+    expect(archived.some((p) => p.id === id)).toBe(true);
+
+    // restore → back in list
+    expect((await server.app.inject({ method: 'POST', url: `/api/projects/${id}/restore`, headers: a })).statusCode).toBe(200);
+    const relisted = (await server.app.inject({ method: 'GET', url: '/api/projects', headers: a })).json().projects as Array<{ id: string }>;
+    expect(relisted.some((p) => p.id === id)).toBe(true);
+
+    // Default cannot be archived
+    expect((await server.app.inject({ method: 'POST', url: '/api/projects/project_default/archive', headers: a })).statusCode).toBe(400);
+  });
 });
