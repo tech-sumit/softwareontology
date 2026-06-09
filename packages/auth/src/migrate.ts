@@ -48,7 +48,11 @@ export async function runMigrations(db: Db): Promise<void> {
 /** Idempotently create the default org + admin role (perm '*') + admin user. */
 export async function seed(db: Db, config: Config): Promise<void> {
   const email = config.get('ADMIN_EMAIL') ?? 'admin@example.com';
-  const password = config.get('ADMIN_PASSWORD') ?? 'admin';
+  const configuredPassword = config.get('ADMIN_PASSWORD');
+  const password = configuredPassword ?? 'admin';
+  if (!configuredPassword || configuredPassword === 'admin') {
+    console.warn('[SECURITY] Default admin password in use — set ADMIN_PASSWORD before exposing this deployment.');
+  }
   await db.query(`INSERT INTO orgs(id,name) VALUES ('org_default','Default') ON CONFLICT (id) DO NOTHING`);
   await db.query(`INSERT INTO permissions(key) VALUES ('*') ON CONFLICT DO NOTHING`);
   await db.query(`INSERT INTO roles(id,org_id,name) VALUES ('role_admin','org_default','admin') ON CONFLICT (org_id,name) DO NOTHING`);

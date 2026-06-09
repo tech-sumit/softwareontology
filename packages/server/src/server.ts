@@ -36,7 +36,7 @@ export async function createServer(opts: {
     services: { db, objectStore, query, config, log: opts.logger },
   });
 
-  const app = Fastify({ logger: false });
+  const app = Fastify({ logger: false, bodyLimit: 64 * 1024 * 1024 });
   await app.register(cookie);
   app.decorate('ctx', kernel.ctx);
 
@@ -71,8 +71,10 @@ export async function createServer(opts: {
   }
 
   app.setErrorHandler((err: FastifyError, _req, reply) => {
-    opts.logger.error('request error', { err: err.message, statusCode: err.statusCode });
-    void reply.code(err.statusCode ?? 500).send({ error: err.message });
+    // Log the full error server-side; never leak internal details to clients on 5xx.
+    opts.logger.error('request error', { err: err.message, stack: err.stack, statusCode: err.statusCode });
+    const status = err.statusCode && err.statusCode < 500 ? err.statusCode : 500;
+    void reply.code(status).send({ error: status < 500 ? err.message : 'internal error' });
   });
 
   return {

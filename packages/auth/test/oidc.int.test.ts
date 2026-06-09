@@ -29,6 +29,7 @@ describe('OIDC SSO login', () => {
       OIDC_AUTH_URL: `http://localhost:${oidcPort}/auth`, OIDC_TOKEN_URL: `http://localhost:${oidcPort}/token`,
       OIDC_USERINFO_URL: `http://localhost:${oidcPort}/userinfo`, OIDC_CLIENT_ID: 'so', OIDC_CLIENT_SECRET: 'secret',
       OIDC_REDIRECT_URI: 'http://localhost:3000/api/auth/oidc/callback',
+      OIDC_AUTO_PROVISION: 'true', // this test exercises first-login auto-provisioning (off by default)
     });
     server = await createServer({ modules: [authModule], logger: createLogger(), config });
     await server.kernel.start();

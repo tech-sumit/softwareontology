@@ -59,3 +59,9 @@ describe('buildResolveSql with functions', () => {
     expect(() => buildResolveSql({ ...flight, functions: [{ name: 'x', expression: 'status; DROP TABLE users', type: 'string' }] }, 'pg', {})).toThrow();
   });
 });
+
+const M = (expr: string): ObjectTypeMapping => ({ objectType: 'T', primaryKey: 'id', properties: [{ name: 'id', column: 'id', type: 'string' }, { name: 'status', column: 'status', type: 'string' }], functions: [{ name: 'f', expression: expr, type: 'bool' }], backing: { kind: 's3', path: 's3://b/x.parquet' } });
+describe('guardExpression', () => {
+  it('allows a safe comparison', () => { expect(() => buildResolveSql(M("status = 'Delayed'"), 'pg', {})).not.toThrow(); });
+  it('rejects a subquery / external read', () => { expect(() => buildResolveSql(M("(SELECT x FROM read_parquet('s3://other/secret.parquet'))"), 'pg', {})).toThrow(); });
+});

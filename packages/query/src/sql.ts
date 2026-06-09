@@ -21,6 +21,12 @@ function guardExpression(expr: string): void {
   if (expr.length > 500) throw new Error('function expression too long');
   if (expr.includes(';') || expr.includes('--') || expr.includes('/*')) throw new Error('illegal characters in function expression');
   if (!SAFE_EXPR.test(expr)) throw new Error('disallowed characters in function expression');
+  // Computed functions are arithmetic/comparison over resolved columns; these
+  // keywords (subqueries, external file/system access) have no legitimate use.
+  const lowered = expr.toLowerCase();
+  if (/\b(select|attach|copy|pragma|install|load|read_parquet|read_csv|read_json|system|getvariable)\b/.test(lowered) || lowered.includes('http')) {
+    throw new Error('disallowed expression');
+  }
 }
 
 /** Trusted-config identifiers only. Guard against SQL injection via config. */

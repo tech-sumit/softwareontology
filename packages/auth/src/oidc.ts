@@ -31,7 +31,8 @@ export function createOidcService(db: Db, config: Config) {
     const existing = await db.query<{ id: string; org_id: string }>(`SELECT id, org_id FROM users WHERE email = $1`, [ui.email]);
     let userId: string; let orgId = 'org_default';
     if (existing[0]) { userId = existing[0].id; orgId = existing[0].org_id; }
-    else { userId = randomUUID(); await db.query(`INSERT INTO users(id,org_id,email,password_hash) VALUES ($1,$2,$3,$4)`, [userId, orgId, ui.email, hashPassword(randomBytes(24).toString('hex'))]); }
+    else if (config.get('OIDC_AUTO_PROVISION') === 'true') { userId = randomUUID(); await db.query(`INSERT INTO users(id,org_id,email,password_hash) VALUES ($1,$2,$3,$4)`, [userId, orgId, ui.email, hashPassword(randomBytes(24).toString('hex'))]); }
+    else { throw new Error('SSO user not provisioned'); }
 
     const token = randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + SESSION_TTL_MS).toISOString();

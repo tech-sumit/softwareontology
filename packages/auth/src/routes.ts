@@ -15,7 +15,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     }
     const token = await auth.login(body.email, body.password);
     if (!token) return reply.code(401).send({ error: 'invalid credentials' });
-    reply.setCookie(SESSION_COOKIE, token, { httpOnly: true, sameSite: 'lax', path: '/' });
+    reply.setCookie(SESSION_COOKIE, token, { httpOnly: true, sameSite: 'lax', path: '/', secure: fastify.ctx.config.get('COOKIE_SECURE') === 'true' });
     return { ok: true };
   });
 
@@ -45,7 +45,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const oidc = createOidcService(fastify.ctx.db, fastify.ctx.config);
       const token = await oidc.handleCallback(q.code);
-      reply.setCookie(SESSION_COOKIE, token, { httpOnly: true, sameSite: 'lax', path: '/' });
+      reply.setCookie(SESSION_COOKIE, token, { httpOnly: true, sameSite: 'lax', path: '/', secure: fastify.ctx.config.get('COOKIE_SECURE') === 'true' });
       return reply.redirect('/');
     } catch (e) { return reply.code(401).send({ error: (e as Error).message }); }
   });
