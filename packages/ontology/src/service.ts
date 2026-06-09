@@ -191,7 +191,12 @@ export function createOntologyService(ctx: ModuleContext) {
     const ot = await getObjectType(orgId, apiName);
     if (!ot) throw new Error(`object type not found: ${apiName}`);
     if (options?.principal) await enforceClearance(ot.datasetId, options.principal);
-    const { principal: _principal, ...resolveOpts } = options ?? {};
+    // resolveObjectSet only understands query options; the governance principal is not one.
+    const resolveOpts: { filters?: Filter[]; limit?: number; offset?: number; branch?: string } = {};
+    if (options?.filters !== undefined) resolveOpts.filters = options.filters;
+    if (options?.limit !== undefined) resolveOpts.limit = options.limit;
+    if (options?.offset !== undefined) resolveOpts.offset = options.offset;
+    if (options?.branch !== undefined) resolveOpts.branch = options.branch;
     const mapping: ObjectTypeMapping = {
       objectType: ot.apiName,
       primaryKey: ot.primaryKey,
