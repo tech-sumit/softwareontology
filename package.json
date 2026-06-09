@@ -2,6 +2,8 @@
   "name": "softwareontology",
   "private": true,
   "type": "module",
+  "license": "MIT",
+  "description": "Open-source, self-hostable alternative to Palantir Foundry — a semantic Ontology layer over your data with pipelines, governance, an app builder, AIP (semantic search + agents), and data branching.",
   "engines": { "node": ">=22" },
   "packageManager": "pnpm@10.28.1",
   "scripts": {
