@@ -1,7 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import type { ModuleContext } from '@so/sdk';
+import type { ModuleContext, DatasetAccessPolicy } from '@so/sdk';
+import { hasPermission } from '@so/auth';
 import { resolveObjectSet, type ObjectTypeMapping, type PropType, type Filter } from '@so/query';
 import { createDatasetService } from '@so/datasets';
+
+export interface Principal { userId: string; permissions: string[]; }
 
 const NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const BRANCH_RE = /^[A-Za-z0-9_-]+$/;
@@ -95,7 +98,7 @@ export function createOntologyService(ctx: ModuleContext) {
     );
   }
 
-  async function resolveLinkedObjects(orgId: string, fromType: string, fromPk: string, linkApiName: string, branch = 'main'): Promise<Record<string, unknown>[]> {
+  async function resolveLinkedObjects(orgId: string, fromType: string, fromPk: string, linkApiName: string, branch = 'main', principal?: Principal): Promise<Record<string, unknown>[]> {
     const fromOt = await getObjectType(orgId, fromType);
     if (!fromOt) throw new Error(`object type not found: ${fromType}`);
     const links = await ctx.db.query<{ to_object_type_id: string; foreign_key_property: string }>(
@@ -110,13 +113,13 @@ export function createOntologyService(ctx: ModuleContext) {
     const toOt = await getObjectType(orgId, toApiName);
     if (!toOt) throw new Error('target object type missing');
 
-    const fromObjs = await resolveObjects(orgId, fromType, { filters: [{ property: fromOt.primaryKey, op: '=', value: fromPk }], branch });
+    const fromObjs = await resolveObjects(orgId, fromType, { filters: [{ property: fromOt.primaryKey, op: '=', value: fromPk }], branch, principal });
     const fromObj = fromObjs[0];
     if (!fromObj) return [];
     const fkValue = fromObj[link.foreign_key_property];
     if (fkValue === null || fkValue === undefined) return [];
 
-    return resolveObjects(orgId, toApiName, { filters: [{ property: toOt.primaryKey, op: '=', value: fkValue as string | number | boolean }], branch });
+    return resolveObjects(orgId, toApiName, { filters: [{ property: toOt.primaryKey, op: '=', value: fkValue as string | number | boolean }], branch, principal });
   }
 
   async function createFunction(orgId: string, objectType: string, input: FunctionInput): Promise<void> {
@@ -160,13 +163,35 @@ export function createOntologyService(ctx: ModuleContext) {
     );
   }
 
+  // Governance enforcement, mirroring ontology/datasets routes: run the
+  // registered dataset clearance policies (mandatory marking-based MAC), and
+  // mask property values whose requiredPermission the principal lacks.
+  async function enforceClearance(datasetId: string, principal: Principal): Promise<void> {
+    const policies = ctx.registry.get<DatasetAccessPolicy>('datasetAccessPolicies');
+    for (const policy of policies) {
+      if (!(await policy.check(ctx, principal.userId, datasetId))) {
+        throw Object.assign(new Error('access denied'), { statusCode: 403 });
+      }
+    }
+  }
+
+  function maskRows(rows: Record<string, unknown>[], properties: PropertyInput[], principal: Principal): void {
+    const masked = properties
+      .filter((p) => p.requiredPermission && !hasPermission(principal.permissions, p.requiredPermission))
+      .map((p) => p.apiName);
+    if (masked.length === 0) return;
+    for (const row of rows) for (const m of masked) delete row[m];
+  }
+
   async function resolveObjects(
     orgId: string,
     apiName: string,
-    options?: { filters?: Filter[]; limit?: number; offset?: number; branch?: string },
+    options?: { filters?: Filter[]; limit?: number; offset?: number; branch?: string; principal?: Principal | undefined },
   ): Promise<Record<string, unknown>[]> {
     const ot = await getObjectType(orgId, apiName);
     if (!ot) throw new Error(`object type not found: ${apiName}`);
+    if (options?.principal) await enforceClearance(ot.datasetId, options.principal);
+    const { principal: _principal, ...resolveOpts } = options ?? {};
     const mapping: ObjectTypeMapping = {
       objectType: ot.apiName,
       primaryKey: ot.primaryKey,
@@ -184,16 +209,18 @@ export function createOntologyService(ctx: ModuleContext) {
         region: ctx.config.get('S3_REGION') ?? 'us-east-1',
         useSsl: ctx.config.get('S3_USE_SSL') === 'true',
       },
-      options: options ?? {},
+      options: resolveOpts,
     });
     // DuckDB returns 64-bit columns (e.g. a CSV-inferred BIGINT `seats`) as JS
     // BigInt, which JSON.stringify cannot serialize. The ontology `int` PropType
     // is a 32-bit JS number, so coerce BigInt cells to Number for the typed API.
-    return rows.map((row) => {
+    const coerced = rows.map((row) => {
       const out: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(row)) out[k] = typeof v === 'bigint' ? Number(v) : v;
       return out;
     });
+    if (options?.principal) maskRows(coerced, ot.properties, options.principal);
+    return coerced;
   }
 
   async function listBranches(orgId: string): Promise<Array<{ name: string; status: string; createdAt: string | null }>> {

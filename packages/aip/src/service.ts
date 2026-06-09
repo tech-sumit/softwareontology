@@ -1,5 +1,5 @@
 import type { ModuleContext } from '@so/sdk';
-import { createOntologyService } from '@so/ontology';
+import { createOntologyService, type Principal } from '@so/ontology';
 import { hashEmbed, cosine } from './embed.js';
 import { parseAction } from './agent.js';
 
@@ -46,8 +46,8 @@ export function createAipService(ctx: ModuleContext) {
     return provider().complete(prompt);
   }
 
-  async function ask(orgId: string, objectType: string, question: string): Promise<string> {
-    const objects = await ontology.resolveObjects(orgId, objectType, { limit: 50 });
+  async function ask(orgId: string, objectType: string, question: string, principal?: Principal): Promise<string> {
+    const objects = await ontology.resolveObjects(orgId, objectType, { limit: 50, principal });
     const prompt =
       `You are analyzing ${objectType} objects.\n` +
       `Data: ${JSON.stringify(objects).slice(0, 4000)}\n` +
@@ -59,12 +59,12 @@ export function createAipService(ctx: ModuleContext) {
     const parts = stringProps.map((p) => `${p}: ${obj[p] ?? ''}`).filter((s) => !s.endsWith(': '));
     return parts.join(' · ') || String(obj[pk] ?? '');
   }
-  async function indexObjectType(orgId: string, objectType: string): Promise<{ indexed: number }> {
+  async function indexObjectType(orgId: string, objectType: string, principal?: Principal): Promise<{ indexed: number }> {
     const ot = await ontology.getObjectType(orgId, objectType);
     if (!ot) throw new Error('unknown object type');
     const stringProps = ot.properties.filter((p) => p.type === 'string').map((p) => p.apiName);
     const pk = ot.primaryKey;
-    const objects = await ontology.resolveObjects(orgId, objectType, { limit: 1000 });
+    const objects = await ontology.resolveObjects(orgId, objectType, { limit: 1000, principal });
     const p = provider();
     let indexed = 0;
     for (const obj of objects) {
@@ -81,7 +81,11 @@ export function createAipService(ctx: ModuleContext) {
     }
     return { indexed };
   }
-  async function search(orgId: string, objectType: string, query: string, k = 10): Promise<Array<{ primaryKey: string; score: number; doc: string }>> {
+  async function search(orgId: string, objectType: string, query: string, k = 10, principal?: Principal): Promise<Array<{ primaryKey: string; score: number; doc: string }>> {
+    // search reads the precomputed embeddings table, bypassing resolveObjects; when a
+    // principal is supplied, gate it through the same clearance enforcement so markings
+    // can't be bypassed via semantic search.
+    if (principal) await ontology.resolveObjects(orgId, objectType, { limit: 1, principal });
     const qv = await provider().embeddings(query);
     const rows = await ctx.db.query<{ primary_key: string; doc: string; vector: number[] }>(
       `SELECT primary_key, doc, vector FROM aip_embeddings WHERE org_id = $1 AND object_type = $2`, [orgId, objectType]);
@@ -90,19 +94,19 @@ export function createAipService(ctx: ModuleContext) {
     return scored.slice(0, Math.max(1, Math.min(k, 100)));
   }
 
-  async function aggregateLocal(orgId: string, objectType: string, groupBy: string): Promise<Array<{ group: string; count: number }>> {
-    const objs = await ontology.resolveObjects(orgId, objectType, { limit: 1000 });
+  async function aggregateLocal(orgId: string, objectType: string, groupBy: string, principal?: Principal): Promise<Array<{ group: string; count: number }>> {
+    const objs = await ontology.resolveObjects(orgId, objectType, { limit: 1000, principal });
     const m = new Map<string, number>();
     for (const o of objs) { const g = String(o[groupBy] ?? '∅'); m.set(g, (m.get(g) ?? 0) + 1); }
     return [...m.entries()].map(([group, count]) => ({ group, count })).sort((a, b) => b.count - a.count);
   }
-  const tools: Array<{ name: string; description: string; run: (orgId: string, a: Record<string, unknown>) => Promise<unknown> }> = [
+  const tools: Array<{ name: string; description: string; run: (orgId: string, a: Record<string, unknown>, principal?: Principal) => Promise<unknown> }> = [
     { name: 'listTypes', description: 'List object type apiNames. args: {}', run: async (orgId) => (await ontology.listObjectTypes(orgId)).map((t) => t.apiName) },
-    { name: 'search', description: 'Semantic search within a type. args: {objectType, query}', run: async (orgId, a) => search(orgId, String(a.objectType), String(a.query), 5) },
-    { name: 'sample', description: 'Return some objects of a type. args: {objectType, limit}', run: async (orgId, a) => ontology.resolveObjects(orgId, String(a.objectType), { limit: Math.min(Number(a.limit) || 10, 50) }) },
-    { name: 'aggregate', description: 'Group-by counts. args: {objectType, groupBy}', run: async (orgId, a) => aggregateLocal(orgId, String(a.objectType), String(a.groupBy)) },
+    { name: 'search', description: 'Semantic search within a type. args: {objectType, query}', run: async (orgId, a, principal) => search(orgId, String(a.objectType), String(a.query), 5, principal) },
+    { name: 'sample', description: 'Return some objects of a type. args: {objectType, limit}', run: async (orgId, a, principal) => ontology.resolveObjects(orgId, String(a.objectType), { limit: Math.min(Number(a.limit) || 10, 50), principal }) },
+    { name: 'aggregate', description: 'Group-by counts. args: {objectType, groupBy}', run: async (orgId, a, principal) => aggregateLocal(orgId, String(a.objectType), String(a.groupBy), principal) },
   ];
-  async function agent(orgId: string, question: string, opts?: { maxSteps?: number }): Promise<{ answer: string; steps: Array<{ tool: string; args: unknown; observation: string }> }> {
+  async function agent(orgId: string, question: string, opts?: { maxSteps?: number }, principal?: Principal): Promise<{ answer: string; steps: Array<{ tool: string; args: unknown; observation: string }> }> {
     const maxSteps = opts?.maxSteps ?? 4;
     const types = (await ontology.listObjectTypes(orgId)).map((t) => t.apiName);
     const catalog = tools.map((t) => `- ${t.name}: ${t.description}`).join('\n');
@@ -117,7 +121,7 @@ export function createAipService(ctx: ModuleContext) {
       const tool = tools.find((t) => t.name === act.tool);
       let observation: string;
       if (!tool) observation = `unknown tool: ${act.tool}`;
-      else { try { observation = JSON.stringify(await tool.run(orgId, act.args)).slice(0, 1500); } catch (e) { observation = `error: ${(e as Error).message}`; } }
+      else { try { observation = JSON.stringify(await tool.run(orgId, act.args, principal)).slice(0, 1500); } catch (e) { observation = `error: ${(e as Error).message}`; } }
       steps.push({ tool: act.tool, args: act.args, observation });
       history += `\nAction: ${JSON.stringify(act)}\nObservation: ${observation}`;
     }
@@ -125,7 +129,7 @@ export function createAipService(ctx: ModuleContext) {
     const ql = question.toLowerCase();
     const type = types.find((t) => ql.includes(t.toLowerCase())) ?? types[0];
     if (!type) return { answer: 'No object types are defined yet.', steps };
-    const hits = await search(orgId, type, question, 5);
+    const hits = await search(orgId, type, question, 5, principal);
     steps.push({ tool: 'search', args: { objectType: type, query: question }, observation: JSON.stringify(hits).slice(0, 1500) });
     const answer = hits.length ? `Top matches in ${type}: ${hits.map((h) => `${h.primaryKey} (${h.score.toFixed(2)})`).join(', ')}.` : `No matches in ${type} — try indexing it first.`;
     return { answer, steps };
