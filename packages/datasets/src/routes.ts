@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import type { DatasetAccessPolicy } from '@so/sdk';
 import { activeProjectId } from '@so/sdk';
-import { requirePermission } from '@so/auth';
+import { requirePermission, requireProjectMembership } from '@so/auth';
 import { createDatasetService } from './service.js';
 
 export const datasetRoutes: FastifyPluginAsync = async (fastify) => {
@@ -14,7 +14,7 @@ export const datasetRoutes: FastifyPluginAsync = async (fastify) => {
 
   const svc = createDatasetService(fastify.ctx);
 
-  fastify.post('/', { preHandler: requirePermission('datasets:write') }, async (req, reply) => {
+  fastify.post('/', { preHandler: [requirePermission('datasets:write'), requireProjectMembership()] }, async (req, reply) => {
     const q = req.query as { name?: string; format?: string };
     if (!q.name) return reply.code(400).send({ error: 'name query param required' });
     const format = q.format === 'parquet' ? 'parquet' : 'csv';
@@ -27,7 +27,7 @@ export const datasetRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.code(201).send({ dataset });
   });
 
-  fastify.get('/', { preHandler: requirePermission('datasets:read') }, async (req) => {
+  fastify.get('/', { preHandler: [requirePermission('datasets:read'), requireProjectMembership()] }, async (req) => {
     return { datasets: await svc.list(req.user!.orgId, activeProjectId(req.headers)) };
   });
 

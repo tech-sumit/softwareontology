@@ -1,17 +1,17 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { requirePermission } from '@so/auth';
+import { requirePermission, requireProjectMembership } from '@so/auth';
 import { activeProjectId } from '@so/sdk';
 import { createAppService } from './service.js';
 
 export const appRoutes: FastifyPluginAsync = async (fastify) => {
   const svc = createAppService(fastify.ctx);
-  fastify.post('/', { preHandler: requirePermission('apps:write') }, async (req, reply) => {
+  fastify.post('/', { preHandler: [requirePermission('apps:write'), requireProjectMembership()] }, async (req, reply) => {
     const b = req.body as { name?: string; definition?: unknown };
     if (!b?.name) return reply.code(400).send({ error: 'name required' });
     try { return reply.code(201).send({ id: await svc.createApp(req.user!.orgId, activeProjectId(req.headers), b.name, b.definition ?? { widgets: [] }) }); }
     catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
   });
-  fastify.get('/', { preHandler: requirePermission('apps:read') }, async (req) => ({ apps: await svc.listApps(req.user!.orgId, activeProjectId(req.headers)) }));
+  fastify.get('/', { preHandler: [requirePermission('apps:read'), requireProjectMembership()] }, async (req) => ({ apps: await svc.listApps(req.user!.orgId, activeProjectId(req.headers)) }));
   fastify.get('/:id', { preHandler: requirePermission('apps:read') }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const app = await svc.getApp(req.user!.orgId, id);
