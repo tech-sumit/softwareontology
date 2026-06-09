@@ -51,6 +51,9 @@ beforeAll(async () => {
   await db.query(`DELETE FROM object_functions WHERE object_type_id IN (SELECT id FROM object_types WHERE org_id='org_default' AND api_name=$1)`, [OT]);
   await db.query(`DELETE FROM object_properties WHERE object_type_id IN (SELECT id FROM object_types WHERE org_id='org_default' AND api_name=$1)`, [OT]);
   await db.query(`DELETE FROM object_types WHERE org_id='org_default' AND api_name=$1`, [OT]);
+  // governance H1: object type backed by the marked dataset (created in the journey test)
+  await db.query(`DELETE FROM object_properties WHERE object_type_id IN (SELECT id FROM object_types WHERE org_id='org_default' AND api_name='E2EGovMarked')`);
+  await db.query(`DELETE FROM object_types WHERE org_id='org_default' AND api_name='E2EGovMarked'`);
   await db.query(`DELETE FROM action_defs WHERE api_name IN ('e2eSetStatus','e2eSetSeats')`);
   await db.query(`DELETE FROM branches WHERE name='wip'`);
   await db.query(`DELETE FROM automations WHERE name='e2eauto'`);
@@ -171,6 +174,16 @@ describe('E2E: full platform journey (all 13 modules)', () => {
     await server.app.inject({ method: 'POST', url: `/api/governance/markings/${mid}/datasets/${govDid}`, headers: a });
     // mandatory access: even the admin is denied until cleared
     expect((await server.app.inject({ method: 'GET', url: `/api/datasets/${govDid}/preview`, headers: a })).statusCode).toBe(403);
+    // H1: dashboards + AIP must ALSO inherit the marking via resolveObjects — back an
+    // object type with the marked-but-uncleared dataset and prove the bypassing surfaces 403.
+    const MARKED_OT = 'E2EGovMarked';
+    expect((await server.app.inject({ method: 'POST', url: '/api/ontology/object-types', headers: a, payload: { apiName: MARKED_OT, datasetId: govDid, primaryKey: 'k', properties: [ { apiName: 'k', column: 'k', type: 'string' }, { apiName: 'v', column: 'v', type: 'string' } ] } })).statusCode).toBe(201);
+    // dashboards must not bypass the marking
+    const govAgg = await server.app.inject({ method: 'POST', url: '/api/dashboards/aggregate', headers: a, payload: { objectType: MARKED_OT, groupBy: 'v' } });
+    expect(govAgg.statusCode).toBe(403);
+    // AIP search must not bypass it either
+    const govSr = await server.app.inject({ method: 'POST', url: '/api/aip/search', headers: a, payload: { objectType: MARKED_OT, query: 'x' } });
+    expect([400, 403]).toContain(govSr.statusCode);
     await server.app.inject({ method: 'POST', url: `/api/governance/markings/${mid}/roles/role_admin`, headers: a });
     expect((await server.app.inject({ method: 'GET', url: `/api/datasets/${govDid}/preview`, headers: a })).statusCode).toBe(200);
     // propagation: a derived dataset inherits the source marking
