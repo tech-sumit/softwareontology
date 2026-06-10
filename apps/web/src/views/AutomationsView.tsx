@@ -3,6 +3,7 @@ import { api } from '../api';
 
 export function AutomationsView() {
   const [automations, setAutomations] = useState<Array<{ id: string; name: string; triggerAction: string; thenAction: string }>>([]);
+  const [actions, setActions] = useState<Array<{ apiName: string; objectType: string; kind: string }>>([]);
   const [name, setName] = useState('');
   const [triggerAction, setTriggerAction] = useState('');
   const [thenAction, setThenAction] = useState('');
@@ -11,7 +12,7 @@ export function AutomationsView() {
   const [err, setErr] = useState('');
 
   async function reload() { try { setAutomations((await api.listAutomations()).automations); } catch (e) { setErr((e as Error).message); } }
-  useEffect(() => { void reload(); }, []);
+  useEffect(() => { void reload(); api.listActions().then((r) => setActions(r.actions)).catch(() => setActions([])); }, []);
 
   async function create() {
     setErr(''); setMsg('');
@@ -26,22 +27,38 @@ export function AutomationsView() {
     } catch (e) { setErr((e as Error).message); }
   }
 
+  async function remove(id: string) {
+    const a = automations.find((x) => x.id === id);
+    if (!window.confirm(`Delete automation “${a?.name ?? id}”?`)) return;
+    setErr(''); setMsg('');
+    try { await api.deleteAutomation(id); await reload(); setMsg('Automation deleted.'); }
+    catch (e) { setErr((e as Error).message); }
+  }
+
   return (
     <div className="card">
       <h2>Automations</h2>
       <p style={{ color: 'var(--muted)' }}>Run a follow-up action whenever a trigger action fires.</p>
       {automations.length === 0 ? <p style={{ color: 'var(--muted)' }}>None yet.</p> : (
         <table>
-          <thead><tr><th>Name</th><th>Trigger</th><th>Then</th></tr></thead>
-          <tbody>{automations.map((a) => <tr key={a.id}><td>{a.name}</td><td>{a.triggerAction}</td><td>{a.thenAction}</td></tr>)}</tbody>
+          <thead><tr><th>Name</th><th>Trigger</th><th>Then</th><th /></tr></thead>
+          <tbody>{automations.map((a) => <tr key={a.id}><td>{a.name}</td><td>{a.triggerAction}</td><td>{a.thenAction}</td><td><button className="sec" onClick={() => remove(a.id)}>Delete</button></td></tr>)}</tbody>
         </table>
       )}
 
       <div style={{ borderTop: '1px solid var(--line)', marginTop: 16, paddingTop: 12 }}>
         <h3>New automation</h3>
         <label htmlFor="au-name">Name</label> <input id="au-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="on_order_close" />
-        <label htmlFor="au-trigger"> Trigger action</label> <input id="au-trigger" value={triggerAction} onChange={(e) => setTriggerAction(e.target.value)} placeholder="closeOrder" />
-        <label htmlFor="au-then"> Then action</label> <input id="au-then" value={thenAction} onChange={(e) => setThenAction(e.target.value)} placeholder="notifyOwner" />
+        <label htmlFor="au-trigger"> Trigger action</label>{' '}
+        <select id="au-trigger" aria-label="trigger action" value={triggerAction} onChange={(e) => setTriggerAction(e.target.value)}>
+          <option value="">— select —</option>
+          {actions.map((a) => <option key={a.apiName} value={a.apiName}>{a.apiName}</option>)}
+        </select>
+        <label htmlFor="au-then"> Then action</label>{' '}
+        <select id="au-then" aria-label="then action" value={thenAction} onChange={(e) => setThenAction(e.target.value)}>
+          <option value="">— select —</option>
+          {actions.map((a) => <option key={a.apiName} value={a.apiName}>{a.apiName}</option>)}
+        </select>
         <div style={{ marginTop: 8 }}>
           <label htmlFor="au-edits">Then-edits (optional JSON)</label>{' '}
           <input id="au-edits" value={thenEdits} onChange={(e) => setThenEdits(e.target.value)} placeholder='{"status":"notified"}' style={{ width: 280 }} />

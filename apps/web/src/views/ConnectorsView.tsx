@@ -48,6 +48,12 @@ export function ConnectorsView() {
     try { const r = await api.syncConnectorDb(id); setDbMsg(`Synced → dataset ${r.datasetId.slice(0, 8)} (${r.rowCount} rows)`); }
     catch (e) { setDbErr((e as Error).message); }
   }
+  async function deleteDb(id: string) {
+    if (!window.confirm('Delete this connector? Datasets it produced are kept.')) return;
+    setDbErr(''); setDbMsg('');
+    try { await api.deleteConnectorDb(id); await loadDb(); setDbMsg('Connector deleted.'); }
+    catch (e) { setDbErr((e as Error).message); }
+  }
 
   async function createCloud() {
     setCloudErr(''); setCloudMsg('');
@@ -62,6 +68,12 @@ export function ConnectorsView() {
     try { const r = await api.syncConnectorCloud(id); setCloudMsg(`Synced → dataset ${r.datasetId.slice(0, 8)} (${r.rowCount} rows)`); }
     catch (e) { setCloudErr((e as Error).message); }
   }
+  async function deleteCloud(id: string) {
+    if (!window.confirm('Delete this connector? Datasets it produced are kept.')) return;
+    setCloudErr(''); setCloudMsg('');
+    try { await api.deleteConnectorCloud(id); await loadCloud(); setCloudMsg('Connector deleted.'); }
+    catch (e) { setCloudErr((e as Error).message); }
+  }
 
   async function createAirflow() {
     setAfErr(''); setAfMsg('');
@@ -73,6 +85,12 @@ export function ConnectorsView() {
     try { const r = await api.syncConnectorAirflow(id); setAfMsg(`Synced → dataset ${r.datasetId.slice(0, 8)} (${r.rowCount} rows)`); }
     catch (e) { setAfErr((e as Error).message); }
   }
+  async function deleteAirflow(id: string) {
+    if (!window.confirm('Delete this connector? Datasets it produced are kept.')) return;
+    setAfErr(''); setAfMsg('');
+    try { await api.deleteConnectorAirflow(id); await loadAirflow(); setAfMsg('Connector deleted.'); }
+    catch (e) { setAfErr((e as Error).message); }
+  }
 
   return (
     <>
@@ -82,21 +100,21 @@ export function ConnectorsView() {
 
         <div style={{ borderTop: '1px solid var(--line)', marginTop: 12, paddingTop: 12 }}>
           <h3>Database (Postgres)</h3>
-          <ConnectorList connectors={dbConns} onSync={syncDb} />
+          <ConnectorList connectors={dbConns} onSync={syncDb} onDelete={deleteDb} />
           {dbMsg ? <div style={{ color: '#3fb950', marginTop: 8 }}>{dbMsg}</div> : null}
           {dbErr ? <div className="err">{dbErr}</div> : null}
         </div>
 
         <div style={{ borderTop: '1px solid var(--line)', marginTop: 16, paddingTop: 12 }}>
           <h3>Cloud (S3 / REST)</h3>
-          <ConnectorList connectors={cloudConns} onSync={syncCloud} />
+          <ConnectorList connectors={cloudConns} onSync={syncCloud} onDelete={deleteCloud} />
           {cloudMsg ? <div style={{ color: '#3fb950', marginTop: 8 }}>{cloudMsg}</div> : null}
           {cloudErr ? <div className="err">{cloudErr}</div> : null}
         </div>
 
         <div style={{ borderTop: '1px solid var(--line)', marginTop: 16, paddingTop: 12 }}>
           <h3>Airflow (connector-runner)</h3>
-          <ConnectorList connectors={airflowConns} onSync={syncAirflow} />
+          <ConnectorList connectors={airflowConns} onSync={syncAirflow} onDelete={deleteAirflow} />
           {afMsg ? <div style={{ color: '#3fb950', marginTop: 8 }}>{afMsg}</div> : null}
           {afErr ? <div className="err">{afErr}</div> : null}
         </div>

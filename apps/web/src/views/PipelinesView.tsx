@@ -7,13 +7,14 @@ type Exp = { type: string; column: string };
 
 export function PipelinesView() {
   const [pipelines, setPipelines] = useState<Array<{ id: string; name: string; inputs: string[] }>>([]);
+  const [datasets, setDatasets] = useState<Array<{ id: string; name: string }>>([]);
   const [sel, setSel] = useState<string>('');
   const [runs, setRuns] = useState<PipelineRun[]>([]);
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   // create form
   const [name, setName] = useState('');
-  const [inputs, setInputs] = useState('');
+  const [inputs, setInputs] = useState<string[]>([]);
   const [mode, setMode] = useState<'sql' | 'dag'>('sql');
   const [sql, setSql] = useState('SELECT * FROM ');
   const [steps, setSteps] = useState<Step[]>([{ name: 'step1', sql: '' }]);
@@ -21,22 +22,29 @@ export function PipelinesView() {
   const [cron, setCron] = useState('*/5 * * * *');
 
   async function reload() { try { setPipelines((await api.listPipelines()).pipelines); } catch (e) { setErr((e as Error).message); } }
-  useEffect(() => { reload(); }, []);
+  useEffect(() => { reload(); api.listDatasets().then((r) => setDatasets(r.datasets)).catch(() => setDatasets([])); }, []);
   async function loadRuns(id: string) { setSel(id); setErr(''); try { setRuns((await api.pipelineRuns(id)).runs); } catch (e) { setErr((e as Error).message); } }
 
   async function create() {
     setErr(''); setMsg('');
-    const body: Record<string, unknown> = { name, inputs: inputs.split(',').map((s) => s.trim()).filter(Boolean) };
+    const body: Record<string, unknown> = { name, inputs };
     if (mode === 'dag') body.steps = steps.filter((s) => s.name && s.sql);
     else body.sql = sql;
     const cleanExps = exps.filter((e) => e.type && e.column);
     if (cleanExps.length) body.expectations = cleanExps.map((e) => ({ type: e.type, column: e.column }));
-    try { await api.createPipeline(body); setName(''); setInputs(''); setSql('SELECT * FROM '); setSteps([{ name: 'step1', sql: '' }]); setExps([]); await reload(); setMsg('Pipeline created.'); }
+    try { await api.createPipeline(body); setName(''); setInputs([]); setSql('SELECT * FROM '); setSteps([{ name: 'step1', sql: '' }]); setExps([]); await reload(); setMsg('Pipeline created.'); }
     catch (e) { setErr((e as Error).message); }
   }
   async function run(id: string) { setErr(''); setMsg(''); try { const r = await api.runPipeline(id); setMsg(`Run ${r.runId.slice(0, 8)} → ${r.rowCount} rows`); await loadRuns(id); } catch (e) { setErr((e as Error).message); await loadRuns(id); } }
   async function schedule(id: string) { setErr(''); setMsg(''); try { await api.setPipelineSchedule(id, cron); setMsg(`Scheduled: ${cron}`); } catch (e) { setErr((e as Error).message); } }
   async function unschedule(id: string) { setErr(''); try { await api.clearPipelineSchedule(id); setMsg('Schedule cleared.'); } catch (e) { setErr((e as Error).message); } }
+  async function remove(id: string) {
+    const p = pipelines.find((x) => x.id === id);
+    if (!window.confirm(`Delete pipeline “${p?.name ?? id}” and its run history?`)) return;
+    setErr(''); setMsg('');
+    try { await api.deletePipeline(id); if (sel === id) { setSel(''); setRuns([]); } await reload(); setMsg('Pipeline deleted.'); }
+    catch (e) { setErr((e as Error).message); }
+  }
 
   return (
     <div className="card">
@@ -52,7 +60,7 @@ export function PipelinesView() {
           {sel ? (
             <div>
               <h3>Build health</h3>
-              <div style={{ marginBottom: 8 }}><button onClick={() => run(sel)}>Run now</button></div>
+              <div style={{ marginBottom: 8 }}><button onClick={() => run(sel)}>Run now</button> <button className="sec" onClick={() => remove(sel)}>Delete</button></div>
               <RunsTable runs={runs} />
               <div style={{ marginTop: 12 }}>
                 <label htmlFor="cron">Cron</label> <input id="cron" value={cron} onChange={(e) => setCron(e.target.value)} style={{ width: 140 }} />
@@ -66,7 +74,11 @@ export function PipelinesView() {
       <div style={{ borderTop: '1px solid var(--line)', marginTop: 16, paddingTop: 12 }}>
         <h3>New pipeline</h3>
         <label htmlFor="pname">Name</label> <input id="pname" value={name} onChange={(e) => setName(e.target.value)} placeholder="delayed_flights" />
-        <label htmlFor="pin"> Inputs (comma-sep dataset names)</label> <input id="pin" value={inputs} onChange={(e) => setInputs(e.target.value)} placeholder="flights" />
+        <label htmlFor="pin"> Inputs (datasets in this project)</label>{' '}
+        <select id="pin" multiple aria-label="pipeline inputs" size={4} value={inputs}
+          onChange={(e) => setInputs(Array.from(e.target.selectedOptions).map((o) => o.value))}>
+          {Array.from(new Set(datasets.map((d) => d.name))).map((n) => <option key={n} value={n}>{n}</option>)}
+        </select>
         <div style={{ margin: '8px 0' }}>
           <label><input type="radio" name="mode" checked={mode === 'sql'} onChange={() => setMode('sql')} aria-label="single sql" /> Single SQL</label>{' '}
           <label><input type="radio" name="mode" checked={mode === 'dag'} onChange={() => setMode('dag')} aria-label="dag steps" /> Steps (DAG)</label>

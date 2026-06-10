@@ -18,15 +18,17 @@ export function AdminView() {
   const [roleName, setRoleName] = useState('');
   const [rolePerms, setRolePerms] = useState<string[]>([]);
 
+  const [currentEmail, setCurrentEmail] = useState('');
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
 
   async function load() {
     try {
-      const [u, r, p] = await Promise.all([api.listUsers(), api.listRoles(), api.listPermissions()]);
+      const [u, r, p, me] = await Promise.all([api.listUsers(), api.listRoles(), api.listPermissions(), api.me()]);
       setUsers(u.users);
       setRoles(r.roles);
       setPermissions(p.permissions);
+      setCurrentEmail(me.user.email);
     } catch (e) { setErr((e as Error).message); }
   }
   useEffect(() => { void load(); }, []);
@@ -55,16 +57,32 @@ export function AdminView() {
     } catch (e) { setErr((e as Error).message); }
   }
 
+  async function removeUser(id: string) {
+    const u = users.find((x) => x.id === id);
+    if (!window.confirm(`Delete user “${u?.email ?? id}”? Their sessions, role grants and project memberships are removed.`)) return;
+    setErr(''); setMsg('');
+    try { await api.deleteUser(id); await load(); setMsg('User deleted.'); }
+    catch (e) { setErr((e as Error).message); }
+  }
+
+  async function removeRole(id: string) {
+    const r = roles.find((x) => x.id === id);
+    if (!window.confirm(`Delete role “${r?.name ?? id}”? Users holding it lose its permissions.`)) return;
+    setErr(''); setMsg('');
+    try { await api.deleteRole(id); await load(); setMsg('Role deleted.'); }
+    catch (e) { setErr((e as Error).message); }
+  }
+
   return (
     <div className="row">
       <div className="main">
         <div className="card" style={{ padding: 16, marginBottom: 16 }}>
           <h3 style={{ marginTop: 0 }}>Users</h3>
-          <UsersTable users={users} />
+          <UsersTable users={users} onDelete={removeUser} currentEmail={currentEmail} />
         </div>
         <div className="card" style={{ padding: 16 }}>
           <h3 style={{ marginTop: 0 }}>Roles</h3>
-          <RolesTable roles={roles} />
+          <RolesTable roles={roles} onDelete={removeRole} />
         </div>
       </div>
       <div className="detail">

@@ -14,4 +14,12 @@ describe('ConnectorList', () => {
     render(<ConnectorList connectors={[]} onSync={() => {}} />);
     expect(screen.getByText(/none yet/i)).toBeInTheDocument();
   });
+  it('hides Delete without onDelete and deletes with it', () => {
+    const onDelete = vi.fn();
+    const { rerender } = render(<ConnectorList connectors={[{ id: 'c1', name: 'sales-db' }]} onSync={() => {}} />);
+    expect(screen.queryByText('Delete')).not.toBeInTheDocument();
+    rerender(<ConnectorList connectors={[{ id: 'c1', name: 'sales-db' }]} onSync={() => {}} onDelete={onDelete} />);
+    fireEvent.click(screen.getByText('Delete'));
+    expect(onDelete).toHaveBeenCalledWith('c1');
+  });
 });
