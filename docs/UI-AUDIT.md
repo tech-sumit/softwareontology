@@ -1,6 +1,6 @@
 # UI Audit — 2026-06-10
 
-Live screenshot audit of all 20 surfaces (login → 8 project pages → 11 console pages). Categorized findings; ✅ = fixed by Plans 61–64.
+Live screenshot audit of all 20 surfaces (login → 8 project pages → 11 console pages). **Status: 23 of 25 findings fixed by Plans 61–65** (merged; key fixes re-verified live). Remaining: #7 (responsive design) and the loading-spinner half of #6 — both tracked in BACKLOG.md.
 
 ## A. Systemic
 1. **Broken form-row layout** — Login, Upload & model, Ask (AIP), Admin→New user lay labels/inputs in one horizontal flex row; labels float beside the wrong field. → Plan 61

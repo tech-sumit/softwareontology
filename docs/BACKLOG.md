@@ -70,7 +70,7 @@ Richer widgets (charts, forms, filters, markdown); layout/grid positioning; vari
 
 **Lineage** — column-level lineage; pipeline/connector → output-dataset provenance edges; full graph traversal/visualization; dataset-direction lineage.
 
-**Dashboards** — sum/avg/min/max metrics; multi-dimension group-by; saved dashboards; chart types beyond bars; pushdown aggregation for large sets.
+**Dashboards** — ~~sum/avg metrics~~ ~~saved dashboards~~ (done, Plan 64); min/max metrics; multi-dimension group-by; chart types beyond bars; pushdown aggregation for large sets.
 
 **Connectors (cloud)** — auth headers/secrets for REST; pagination; S3 across buckets/credentials; streaming; JSON schema typing.
 **Connectors (Airflow)** — Parquet-direct extraction at scale; more providers wired; runner auth; encrypted secrets for `conn`; scheduled syncs via the worker.
@@ -80,3 +80,10 @@ Richer widgets (charts, forms, filters, markdown); layout/grid positioning; vari
 **SDK / OpenAPI** — full endpoint coverage in the spec; auto-generate the spec from route schemas; Swagger-UI page; publish the SDK to a registry.
 
 **Testing / ops** — Playwright browser E2E (live UI checks are currently manual); load/perf testing; multi-org E2E.
+
+## UI residuals (from docs/UI-AUDIT.md, after Plans 61–65)
+
+- **Responsive design** (#7) — the rail + multi-panel layouts assume a desktop viewport.
+- **Loading indicators** (#6, second half) — fetches have no spinners/skeletons.
+- **Pipeline/connector outputs land in `project_default`** — derived-dataset inserts omit `project_id` (observed in Plan 63's KPI investigation); stamp the originating project.
+- Echo AIP provider remains a stub by design — `AIP_PROVIDER=http` enables a real model.
