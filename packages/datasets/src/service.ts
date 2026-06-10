@@ -11,7 +11,7 @@ export interface DatasetMeta {
   objectKey: string;
   rowCount: number;
   columns: DatasetColumn[];
-  createdAt?: string;
+  createdAt?: string | undefined;
 }
 
 function iso(v: unknown): string | undefined {

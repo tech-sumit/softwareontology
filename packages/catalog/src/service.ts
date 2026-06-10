@@ -4,7 +4,7 @@ export interface AuditEntry { actor: string | null; actorEmail: string | null; a
 export interface SearchHit { kind: string; name: string; }
 
 export function createCatalogService(ctx: ModuleContext) {
-  async function audit(orgId: string, filters: { action?: string; objectType?: string; limit?: number; offset?: number }): Promise<AuditEntry[]> {
+  async function audit(orgId: string, filters: { action?: string | undefined; objectType?: string | undefined; limit?: number | undefined; offset?: number | undefined }): Promise<AuditEntry[]> {
     const where: string[] = ['a.org_id = $1'];
     const params: unknown[] = [orgId];
     if (filters.action) { params.push(filters.action); where.push(`a.action = $${params.length}`); }
