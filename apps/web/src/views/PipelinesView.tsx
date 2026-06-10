@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import CodeMirror from '@uiw/react-codemirror';
+import { sql as sqlLang } from '@codemirror/lang-sql';
 import { api } from '../api';
 import { RunsTable, type PipelineRun } from '../components/RunsTable';
 
@@ -84,13 +86,17 @@ export function PipelinesView() {
           <label><input type="radio" name="mode" checked={mode === 'dag'} onChange={() => setMode('dag')} aria-label="dag steps" /> Steps (DAG)</label>
         </div>
         {mode === 'sql' ? (
-          <textarea aria-label="sql" value={sql} onChange={(e) => setSql(e.target.value)} rows={3} style={{ width: '100%' }} />
+          <div style={{ border: '1px solid var(--line)', borderRadius: 6 }}>
+            <CodeMirror value={sql} height="140px" extensions={[sqlLang()]} onChange={(v) => setSql(v)} aria-label="pipeline sql" basicSetup={{ lineNumbers: true, foldGutter: false }} />
+          </div>
         ) : (
           <div>
             {steps.map((s, i) => (
-              <div key={i} style={{ marginBottom: 4 }}>
+              <div key={i} style={{ marginBottom: 4, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 <input aria-label={`step ${i} name`} value={s.name} onChange={(e) => setSteps((ss) => ss.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} placeholder="step name" style={{ width: 120 }} />
-                <input aria-label={`step ${i} sql`} value={s.sql} onChange={(e) => setSteps((ss) => ss.map((x, j) => j === i ? { ...x, sql: e.target.value } : x))} placeholder="SELECT ... (reads inputs / earlier steps)" style={{ width: '60%' }} />
+                <div style={{ width: '60%', border: '1px solid var(--line)', borderRadius: 6 }}>
+                  <CodeMirror value={s.sql} height="80px" extensions={[sqlLang()]} onChange={(v) => setSteps((ss) => ss.map((x, j) => j === i ? { ...x, sql: v } : x))} aria-label={`step ${i} sql`} basicSetup={{ lineNumbers: true, foldGutter: false }} />
+                </div>
               </div>
             ))}
             <button className="sec" onClick={() => setSteps((ss) => [...ss, { name: `step${ss.length + 1}`, sql: '' }])}>+ Step</button>

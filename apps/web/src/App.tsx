@@ -83,7 +83,7 @@ export function App() {
         case 'ontology': return <OntologyManager key={branch} />;
         case 'explorer': return <ObjectExplorer key={branch} />;
         case 'branches': return <BranchesView notify={notify} onChanged={reloadBranches} />;
-        case 'lineage': return <LineageView />;
+        case 'lineage': return <LineageView onOpenType={() => openSurface('ontology')} />;
         case 'catalog': return <CatalogView initialQuery={searchQuery} key={searchQuery} />;
         case 'dashboards': return <DashboardsView />;
         case 'governance': return <GovernanceView />;

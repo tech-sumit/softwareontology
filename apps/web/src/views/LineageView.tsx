@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react';
 import { api, type ObjectTypeSummary, type ObjectTypeLineage } from '../api';
+import { LineageGraph, type LineageData } from '../components/LineageGraph';
 
-export function LineageView() {
+type LinkType = { apiName: string; fromObjectType: string; toObjectType: string };
+
+export function LineageView({ onOpenType }: { onOpenType?: (apiName: string) => void }) {
   const [types, setTypes] = useState<ObjectTypeSummary[]>([]);
+  const [linkTypes, setLinkTypes] = useState<LinkType[]>([]);
   const [selected, setSelected] = useState('');
   const [lineage, setLineage] = useState<ObjectTypeLineage | null>(null);
   const [err, setErr] = useState('');
 
-  useEffect(() => { api.listObjectTypes().then((r) => setTypes(r.objectTypes)).catch((e) => setErr((e as Error).message)); }, []);
+  useEffect(() => {
+    api.listObjectTypes().then((r) => setTypes(r.objectTypes)).catch((e) => setErr((e as Error).message));
+    api.listLinkTypes().then((r) => setLinkTypes(r.linkTypes)).catch(() => setLinkTypes([]));
+  }, []);
 
   async function pick(apiName: string) {
     setSelected(apiName); setErr(''); setLineage(null);
@@ -16,8 +23,16 @@ export function LineageView() {
     catch (e) { setErr((e as Error).message); }
   }
 
-  const actions = lineage?.actions ?? [];
-  const links = lineage?.links ?? [];
+  const data: LineageData | null = lineage ? {
+    objectType: lineage.objectType,
+    dataset: lineage.backingDataset ? { id: lineage.backingDataset, name: lineage.backingDataset } : null,
+    actions: lineage.actions,
+    links: lineage.links.map((apiName) => {
+      const lt = linkTypes.find((l) => l.apiName === apiName);
+      const to = lt ? (lt.fromObjectType === lineage.objectType ? lt.toObjectType : lt.fromObjectType) : apiName;
+      return { apiName, toObjectType: to };
+    }),
+  } : null;
 
   return (
     <div className="card">
@@ -32,17 +47,9 @@ export function LineageView() {
           </select>
         </div>
       )}
-      {lineage ? (
+      {data ? (
         <div style={{ marginTop: 12 }}>
-          <div><div className="label">BACKING DATASET</div><div>{lineage.backingDataset ?? <span style={{ color: 'var(--muted)' }}>none</span>}</div></div>
-          <div style={{ marginTop: 12 }}>
-            <div className="label">ACTIONS</div>
-            {actions.length === 0 ? <span style={{ color: 'var(--muted)' }}>none</span> : <ul>{actions.map((a) => <li key={a}>{a}</li>)}</ul>}
-          </div>
-          <div style={{ marginTop: 12 }}>
-            <div className="label">LINKS</div>
-            {links.length === 0 ? <span style={{ color: 'var(--muted)' }}>none</span> : <ul>{links.map((l) => <li key={l}>{l}</li>)}</ul>}
-          </div>
+          <LineageGraph data={data} onOpenType={(t) => onOpenType?.(t)} />
         </div>
       ) : null}
       {err ? <div className="err">{err}</div> : null}

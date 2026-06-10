@@ -5,9 +5,6 @@ import { AgentTrace, type AgentStep } from '../components/AgentTrace';
 
 export function AskView() {
   const [types, setTypes] = useState<ObjectTypeSummary[]>([]);
-  const [ot, setOt] = useState('');
-  const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState('');
   const [err, setErr] = useState('');
 
   const [stype, setStype] = useState('');
@@ -19,12 +16,7 @@ export function AskView() {
   const [agentRes, setAgentRes] = useState<{ answer: string; steps: AgentStep[] } | null>(null);
   const [arun, setArun] = useState(false);
 
-  useEffect(() => { api.listObjectTypes().then((r) => { setTypes(r.objectTypes); if (r.objectTypes[0]) { setOt(r.objectTypes[0].apiName); setStype(r.objectTypes[0].apiName); } }).catch((e) => setErr((e as Error).message)); }, []);
-
-  async function run() {
-    setErr(''); setAnswer('');
-    try { setAnswer((await api.ask(ot, question)).answer); } catch (e) { setErr((e as Error).message); }
-  }
+  useEffect(() => { api.listObjectTypes().then((r) => { setTypes(r.objectTypes); if (r.objectTypes[0]) setStype(r.objectTypes[0].apiName); }).catch((e) => setErr((e as Error).message)); }, []);
 
   async function doIndex() { setSmsg('Indexing…'); try { const r = await api.aipIndex(stype); setSmsg(`Indexed ${r.indexed} objects.`); } catch (e) { setSmsg((e as Error).message); } }
   async function doSearch() { try { setHits((await api.aipSearch(stype, q)).results); } catch (e) { setSmsg((e as Error).message); } }
@@ -32,21 +24,19 @@ export function AskView() {
 
   return (
     <div className="card pad">
-      <h2>Ask (AIP)</h2>
+      <h2>Ask</h2>
       <p style={{ fontSize: 12, color: 'var(--muted)' }}>Default provider is <code>echo</code> (offline). Set AIP_PROVIDER=http + AIP_ENDPOINT for a real model.</p>
-      <div className="formcard">
-        <div className="field">
-          <label htmlFor="aot">Object type</label>
-          <select id="aot" value={ot} onChange={(e) => setOt(e.target.value)}>{types.map((t) => <option key={t.apiName} value={t.apiName}>{t.apiName}</option>)}</select>
-        </div>
-        <div className="field">
-          <label htmlFor="q">Question</label>
-          <textarea id="q" rows={3} value={question} placeholder="Summarize these objects." onChange={(e) => setQuestion(e.target.value)} />
-        </div>
-        <div style={{ margin: '0 0 10px' }}><button onClick={run}>Ask</button></div>
-      </div>
-      {answer ? <pre style={{ whiteSpace: 'pre-wrap', background: '#f0f2f5', padding: 10, borderRadius: 6, fontSize: 12 }}>{answer}</pre> : null}
       {err ? <div className="err">{err}</div> : null}
+
+      <div className="card pad" style={{ marginTop: 12 }}>
+        <h3>Ask the agent</h3>
+        <p className="muted">Ask a question; the agent picks tools (search, sample, aggregate) over your ontology and shows its work.</p>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input aria-label="agent question" value={aq} onChange={(e) => setAq(e.target.value)} placeholder="Which flights are delayed?" style={{ flex: 1 }} onKeyDown={(e) => { if (e.key === 'Enter') runAgent(); }} />
+          <button onClick={runAgent} disabled={arun || !aq.trim()}>{arun ? 'Thinking…' : 'Run'}</button>
+        </div>
+        {agentRes ? <AgentTrace answer={agentRes.answer} steps={agentRes.steps} /> : null}
+      </div>
 
       <div className="card pad" style={{ marginTop: 18 }}>
         <h3>Semantic search</h3>
@@ -59,16 +49,6 @@ export function AskView() {
         </div>
         {smsg ? <div className="muted" style={{ marginTop: 8 }}>{smsg}</div> : null}
         <div style={{ marginTop: 12 }}><SearchResults hits={hits} /></div>
-      </div>
-
-      <div className="card pad" style={{ marginTop: 18 }}>
-        <h3>Ask the agent</h3>
-        <p className="muted">Ask a question; the agent picks tools (search, sample, aggregate) over your ontology and shows its work.</p>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input aria-label="agent question" value={aq} onChange={(e) => setAq(e.target.value)} placeholder="Which flights are delayed?" style={{ flex: 1 }} onKeyDown={(e) => { if (e.key === 'Enter') runAgent(); }} />
-          <button onClick={runAgent} disabled={arun || !aq.trim()}>{arun ? 'Thinking…' : 'Run'}</button>
-        </div>
-        {agentRes ? <AgentTrace answer={agentRes.answer} steps={agentRes.steps} /> : null}
       </div>
     </div>
   );

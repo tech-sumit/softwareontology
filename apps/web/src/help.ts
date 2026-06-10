@@ -89,10 +89,9 @@ export const HELP: Record<string, HelpEntry> = {
     'Each endpoint has a copy-curl button that produces a ready-to-run request.',
   ]},
   'console:ask': { title: 'Ask', steps: [
-    'Ask a natural-language question over your ontology.',
+    'Ask the agent a natural-language question — it chooses tools (search, sample, aggregate) over your ontology and shows the steps it took.',
     'The AIP gateway routes to the configured LLM provider and answers grounded in your objects.',
     'Under Semantic search, pick a type, click Index once, then search it by meaning.',
-    'Ask the agent a question — it chooses tools over your ontology and shows the steps it took.',
   ]},
   'console:branches': { title: 'Branches', steps: [
     'A branch isolates edits you make through Actions, on top of the shared base data.',
