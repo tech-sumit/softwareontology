@@ -12,4 +12,10 @@ export const automationRoutes: FastifyPluginAsync = async (fastify) => {
     catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
   });
   fastify.get('/', { preHandler: [requirePermission('automations:read'), requireProjectMembership()] }, async (req) => ({ automations: await svc.listAutomations(req.user!.orgId, activeProjectId(req.headers)) }));
+
+  fastify.delete('/:id', { preHandler: [requirePermission('automations:write'), requireProjectMembership()] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const ok = await svc.deleteAutomation(req.user!.orgId, id);
+    return ok ? reply.send({ ok: true }) : reply.code(404).send({ error: 'automation not found' });
+  });
 };

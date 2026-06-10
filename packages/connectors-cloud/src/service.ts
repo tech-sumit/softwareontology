@@ -71,5 +71,11 @@ export function createCloudConnectorService(ctx: ModuleContext) {
     } finally { await session.close(); await rm(dir, { recursive: true, force: true }); }
   }
 
-  return { createConnector, listConnectors, sync };
+  async function deleteConnector(orgId: string, id: string): Promise<boolean> {
+    // Both s3 and rest connectors live in the single cloud_connectors table.
+    const r = await ctx.db.query<{ id: string }>(`DELETE FROM cloud_connectors WHERE org_id = $1 AND id = $2 RETURNING id`, [orgId, id]);
+    return r.length > 0;
+  }
+
+  return { createConnector, listConnectors, sync, deleteConnector };
 }

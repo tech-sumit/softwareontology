@@ -63,5 +63,10 @@ export function createConnectorService(ctx: ModuleContext) {
     }
   }
 
-  return { createConnector, listConnectors, sync };
+  async function deleteConnector(orgId: string, id: string): Promise<boolean> {
+    const r = await ctx.db.query<{ id: string }>(`DELETE FROM db_connectors WHERE org_id = $1 AND id = $2 RETURNING id`, [orgId, id]);
+    return r.length > 0;
+  }
+
+  return { createConnector, listConnectors, sync, deleteConnector };
 }

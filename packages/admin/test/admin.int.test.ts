@@ -61,6 +61,38 @@ describe('admin: user & role administration', () => {
     expect(newLogin.statusCode).toBe(200);
   });
 
+  it('deletes a user (but never yourself) and a role (but never an admin role)', async () => {
+    const login = await server.app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'admin@example.com', password: 'admin' } });
+    const auth = { cookie: cookieFrom(login.headers['set-cookie']) };
+
+    // deleting yourself is refused
+    const self = await server.app.inject({ method: 'DELETE', url: '/api/admin/users/user_admin', headers: auth });
+    expect(self.statusCode).toBe(400);
+
+    // delete the analyst created above -> gone from the list
+    const list = await server.app.inject({ method: 'GET', url: '/api/admin/users', headers: auth });
+    const analyst = (list.json().users as Array<{ id: string; email: string }>).find((u) => u.email === 'analyst@example.com');
+    expect(analyst).toBeDefined();
+    const del = await server.app.inject({ method: 'DELETE', url: `/api/admin/users/${analyst!.id}`, headers: auth });
+    expect(del.statusCode).toBe(200);
+    const after = await server.app.inject({ method: 'GET', url: '/api/admin/users', headers: auth });
+    expect((after.json().users as Array<{ email: string }>).some((u) => u.email === 'analyst@example.com')).toBe(false);
+
+    // deleting the admin role (grants '*') is refused
+    const adminDel = await server.app.inject({ method: 'DELETE', url: '/api/admin/roles/role_admin', headers: auth });
+    expect(adminDel.statusCode).toBe(400);
+    expect(adminDel.json().error).toMatch(/admin role/);
+
+    // delete the viewer role created above -> gone from the list
+    const roles = await server.app.inject({ method: 'GET', url: '/api/admin/roles', headers: auth });
+    const viewer = (roles.json().roles as Array<{ id: string; name: string }>).find((r) => r.name === 'viewer');
+    expect(viewer).toBeDefined();
+    const roleDel = await server.app.inject({ method: 'DELETE', url: `/api/admin/roles/${viewer!.id}`, headers: auth });
+    expect(roleDel.statusCode).toBe(200);
+    const rolesAfter = await server.app.inject({ method: 'GET', url: '/api/admin/roles', headers: auth });
+    expect((rolesAfter.json().roles as Array<{ name: string }>).some((r) => r.name === 'viewer')).toBe(false);
+  });
+
   it('rejects unauthenticated admin access', async () => {
     const res = await server.app.inject({ method: 'GET', url: '/api/admin/users' });
     expect(res.statusCode).toBe(401);

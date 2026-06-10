@@ -40,5 +40,13 @@ describe('pipeline: SQL transform produces a derived dataset', () => {
     const rows = preview.json().rows as Array<{ flight_no: string; seats: number }>;
     expect(rows.map((r) => r.flight_no).sort()).toEqual(['FL-204', 'FL-552']);
     expect(rows.every((r) => typeof r.seats === 'number')).toBe(true); // BigInt-safe serialization (server reply serializer)
+
+    // delete: pipeline (and its runs) removed, list no longer contains it
+    const del = await server.app.inject({ method: 'DELETE', url: `/api/pipelines/${pid}`, headers: auth });
+    expect(del.statusCode).toBe(200);
+    const list = await server.app.inject({ method: 'GET', url: '/api/pipelines', headers: auth });
+    expect((list.json().pipelines as Array<{ id: string }>).some((p) => p.id === pid)).toBe(false);
+    const delAgain = await server.app.inject({ method: 'DELETE', url: `/api/pipelines/${pid}`, headers: auth });
+    expect(delAgain.statusCode).toBe(404);
   });
 });

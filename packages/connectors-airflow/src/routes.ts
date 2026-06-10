@@ -17,4 +17,9 @@ export const airflowConnectorRoutes: FastifyPluginAsync = async (fastify) => {
     try { return reply.code(200).send(await svc.sync(req.user!.orgId, id)); }
     catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
   });
+  fastify.delete('/:id', { preHandler: [requirePermission('connectors:write'), requireProjectMembership()] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const ok = await svc.deleteConnector(req.user!.orgId, id);
+    return ok ? reply.send({ ok: true }) : reply.code(404).send({ error: 'connector not found' });
+  });
 };

@@ -204,5 +204,14 @@ export function createPipelineService(ctx: ModuleContext) {
     return r.length > 0;
   }
 
-  return { createPipeline, listPipelines, run, listRuns, getRun, setSchedule, clearSchedule };
+  async function deletePipeline(orgId: string, id: string): Promise<boolean> {
+    return ctx.db.transaction(async (tx) => {
+      // FK ordering: delete child rows (runs) before the pipeline row.
+      await tx.query(`DELETE FROM pipeline_runs WHERE org_id = $1 AND pipeline_id = $2`, [orgId, id]);
+      const r = await tx.query<{ id: string }>(`DELETE FROM pipelines WHERE org_id = $1 AND id = $2 RETURNING id`, [orgId, id]);
+      return r.length > 0;
+    });
+  }
+
+  return { createPipeline, listPipelines, run, listRuns, getRun, setSchedule, clearSchedule, deletePipeline };
 }

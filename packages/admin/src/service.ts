@@ -59,11 +59,34 @@ export function createAdminService(ctx: ModuleContext) {
     });
   }
 
+  async function deleteUser(orgId: string, id: string): Promise<boolean> {
+    return ctx.db.transaction(async (tx) => {
+      // FK ordering: child rows (sessions, user_roles, project memberships) before the user.
+      await tx.query(`DELETE FROM sessions WHERE user_id = $1`, [id]);
+      await tx.query(`DELETE FROM user_roles WHERE user_id = $1`, [id]);
+      const pm = await tx.query<{ t: string | null }>(`SELECT to_regclass('project_members')::text AS t`);
+      if (pm[0]?.t) await tx.query(`DELETE FROM project_members WHERE user_id = $1`, [id]);
+      const r = await tx.query<{ id: string }>(`DELETE FROM users WHERE org_id = $1 AND id = $2 RETURNING id`, [orgId, id]);
+      return r.length > 0;
+    });
+  }
+
+  async function deleteRole(orgId: string, id: string): Promise<boolean> {
+    const admin = await ctx.db.query<{ role_id: string }>(`SELECT role_id FROM role_permissions WHERE role_id = $1 AND permission_key = '*'`, [id]);
+    if (admin.length > 0) throw new Error('cannot delete an admin role');
+    return ctx.db.transaction(async (tx) => {
+      await tx.query(`DELETE FROM role_permissions WHERE role_id = $1`, [id]);
+      await tx.query(`DELETE FROM user_roles WHERE role_id = $1`, [id]);
+      const r = await tx.query<{ id: string }>(`DELETE FROM roles WHERE org_id = $1 AND id = $2 RETURNING id`, [orgId, id]);
+      return r.length > 0;
+    });
+  }
+
   /** All permission keys contributed by loaded modules (plus the wildcard). */
   function listPermissions(): string[] {
     const keys = ctx.registry.get<string>('permissions');
     return Array.from(new Set(['*', ...keys])).sort();
   }
 
-  return { listUsers, createUser, listRoles, createRole, listPermissions };
+  return { listUsers, createUser, listRoles, createRole, listPermissions, deleteUser, deleteRole };
 }

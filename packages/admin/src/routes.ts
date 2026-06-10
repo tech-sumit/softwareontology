@@ -25,5 +25,20 @@ export const adminRoutes: FastifyPluginAsync = async (fastify) => {
     catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
   });
 
+  fastify.delete('/users/:id', { preHandler: requirePermission('admin:users') }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    if (req.user!.id === id) return reply.code(400).send({ error: 'cannot delete yourself' });
+    const ok = await svc.deleteUser(req.user!.orgId, id);
+    return ok ? reply.send({ ok: true }) : reply.code(404).send({ error: 'user not found' });
+  });
+
+  fastify.delete('/roles/:id', { preHandler: requirePermission('admin:roles') }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    try {
+      const ok = await svc.deleteRole(req.user!.orgId, id);
+      return ok ? reply.send({ ok: true }) : reply.code(404).send({ error: 'role not found' });
+    } catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
+  });
+
   fastify.get('/permissions', { preHandler: requirePermission('admin:roles') }, async () => ({ permissions: svc.listPermissions() }));
 };

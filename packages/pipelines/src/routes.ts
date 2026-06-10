@@ -45,4 +45,10 @@ export const pipelineRoutes: FastifyPluginAsync = async (fastify) => {
     const ok = await svc.clearSchedule(req.user!.orgId, id);
     return ok ? reply.send({ ok: true }) : reply.code(404).send({ error: 'pipeline not found' });
   });
+
+  fastify.delete('/:id', { preHandler: [requirePermission('pipelines:write'), requireProjectMembership()] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const ok = await svc.deletePipeline(req.user!.orgId, id);
+    return ok ? reply.send({ ok: true }) : reply.code(404).send({ error: 'pipeline not found' });
+  });
 };

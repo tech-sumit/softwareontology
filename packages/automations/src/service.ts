@@ -24,5 +24,10 @@ export function createAutomationService(ctx: ModuleContext) {
     return rows.map((r) => ({ id: r.id, name: r.name, triggerAction: r.trigger_action, thenAction: r.then_action }));
   }
 
-  return { createAutomation, listAutomations };
+  async function deleteAutomation(orgId: string, id: string): Promise<boolean> {
+    const r = await ctx.db.query<{ id: string }>(`DELETE FROM automations WHERE org_id = $1 AND id = $2 RETURNING id`, [orgId, id]);
+    return r.length > 0;
+  }
+
+  return { createAutomation, listAutomations, deleteAutomation };
 }
