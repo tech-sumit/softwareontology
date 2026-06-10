@@ -6,8 +6,15 @@ export const catalogRoutes: FastifyPluginAsync = async (fastify) => {
   const svc = createCatalogService(fastify.ctx);
 
   fastify.get('/audit', { preHandler: requirePermission('catalog:read') }, async (req) => {
-    const q = req.query as { action?: string; objectType?: string };
-    return { entries: await svc.audit(req.user!.orgId, q) };
+    const q = req.query as { action?: string; objectType?: string; limit?: string; offset?: string };
+    return {
+      entries: await svc.audit(req.user!.orgId, {
+        action: q.action,
+        objectType: q.objectType,
+        limit: q.limit !== undefined ? Number(q.limit) : undefined,
+        offset: q.offset !== undefined ? Number(q.offset) : undefined,
+      }),
+    };
   });
 
   fastify.get('/search', { preHandler: requirePermission('catalog:read') }, async (req, reply) => {

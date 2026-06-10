@@ -50,11 +50,25 @@ describe('dataset routes', () => {
 
     const list = await server.app.inject({ method: 'GET', url: '/api/datasets', headers: { cookie } });
     expect(list.statusCode).toBe(200);
-    expect(list.json().datasets.some((d: { id: string }) => d.id === dsId)).toBe(true);
+    const listed = list.json().datasets as Array<{ id: string; name: string; createdAt?: string }>;
+    expect(listed.some((d) => d.id === dsId)).toBe(true);
+    expect(listed.find((d) => d.id === dsId)?.createdAt).toBeTruthy();
 
     const preview = await server.app.inject({ method: 'GET', url: `/api/datasets/${dsId}/preview`, headers: { cookie } });
     expect(preview.statusCode).toBe(200);
     expect(preview.json().rows).toHaveLength(3);
     expect(preview.json().rows[0].flight_no).toBe('FL-204');
+
+    // list dedupes by name — latest version wins (audit #4 KPI fix)
+    const upload2 = await server.app.inject({
+      method: 'POST', url: '/api/datasets?name=flights&format=csv',
+      headers: { cookie, 'content-type': 'text/csv' },
+      payload: 'flight_no,status\nFL-901,Landed\n',
+    });
+    expect(upload2.statusCode).toBe(201);
+    const list2 = await server.app.inject({ method: 'GET', url: '/api/datasets', headers: { cookie } });
+    const flights = (list2.json().datasets as Array<{ id: string; name: string }>).filter((d) => d.name === 'flights');
+    expect(flights).toHaveLength(1);
+    expect(flights[0]!.id).toBe(upload2.json().dataset.id);
   });
 });

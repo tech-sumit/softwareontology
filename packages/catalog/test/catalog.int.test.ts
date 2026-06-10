@@ -28,6 +28,7 @@ describe('catalog: audit + search', () => {
     await db.query(`DELETE FROM datasets WHERE name='catalogds'`);
     await db.query(`INSERT INTO datasets(id,org_id,name,object_key,row_count) VALUES ('catds','org_default','catalogds','k',0) ON CONFLICT (id) DO NOTHING`);
     await db.query(`INSERT INTO audit_log(id,org_id,actor,action,object_type,primary_key,params) VALUES ('cataudit','org_default','admin','testAction','Widget','W1','{}') ON CONFLICT (id) DO NOTHING`);
+    await db.query(`INSERT INTO audit_log(id,org_id,actor,action,object_type,primary_key,params) VALUES ('cataudit2','org_default','user_admin','testAction','Widget','W2','{}') ON CONFLICT (id) DO NOTHING`);
 
     const login = await server.app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'admin@example.com', password: 'admin' } });
     const auth = { cookie: cookieFrom(login.headers['set-cookie']) };
@@ -38,8 +39,15 @@ describe('catalog: audit + search', () => {
 
     const audit = await server.app.inject({ method: 'GET', url: '/api/catalog/audit?action=testAction', headers: auth });
     expect(audit.statusCode).toBe(200);
-    const entries = audit.json().entries as Array<{ action: string; objectType: string }>;
+    const entries = audit.json().entries as Array<{ actor: string | null; actorEmail: string | null; action: string; objectType: string }>;
     expect(entries.some((e) => e.action === 'testAction' && e.objectType === 'Widget')).toBe(true);
+    // actorEmail resolves user ids to emails and falls back to the raw actor string
+    expect(entries.find((e) => e.actor === 'user_admin')?.actorEmail).toBe('admin@example.com');
+    expect(entries.find((e) => e.actor === 'admin')?.actorEmail).toBe('admin');
+
+    const limited = await server.app.inject({ method: 'GET', url: '/api/catalog/audit?action=testAction&limit=1', headers: auth });
+    expect(limited.statusCode).toBe(200);
+    expect(limited.json().entries).toHaveLength(1);
 
     const noauth = await server.app.inject({ method: 'GET', url: '/api/catalog/search?q=x' });
     expect(noauth.statusCode).toBe(401);

@@ -11,6 +11,12 @@ export interface DatasetMeta {
   objectKey: string;
   rowCount: number;
   columns: DatasetColumn[];
+  createdAt?: string;
+}
+
+function iso(v: unknown): string | undefined {
+  if (v instanceof Date) return v.toISOString();
+  return v == null ? undefined : String(v);
 }
 
 export function createDatasetService(ctx: ModuleContext) {
@@ -41,8 +47,8 @@ export function createDatasetService(ctx: ModuleContext) {
       }));
       const rowCount = Number(counted[0]?.n ?? 0);
 
-      await ctx.db.query(
-        `INSERT INTO datasets(id,org_id,project_id,name,object_key,row_count) VALUES ($1,$2,$3,$4,$5,$6)`,
+      const inserted = await ctx.db.query<{ created_at: unknown }>(
+        `INSERT INTO datasets(id,org_id,project_id,name,object_key,row_count) VALUES ($1,$2,$3,$4,$5,$6) RETURNING created_at`,
         [id, orgId, projectId, name, objectKey, rowCount],
       );
       for (let i = 0; i < columns.length; i++) {
@@ -52,7 +58,7 @@ export function createDatasetService(ctx: ModuleContext) {
           [id, i, col.name, col.duckType],
         );
       }
-      return { id, name, objectKey, rowCount, columns };
+      return { id, name, objectKey, rowCount, columns, createdAt: iso(inserted[0]?.created_at) };
     } finally {
       await session.close();
       await rm(dir, { recursive: true, force: true });
@@ -60,23 +66,32 @@ export function createDatasetService(ctx: ModuleContext) {
   }
 
   async function list(orgId: string, projectId: string): Promise<DatasetMeta[]> {
-    const rows = await ctx.db.query<{ id: string; name: string; object_key: string; row_count: number }>(
-      `SELECT id, name, object_key, row_count FROM datasets WHERE org_id = $1 AND project_id = $2 ORDER BY created_at DESC`,
+    // One row per logical dataset: pipeline runs / connector syncs insert a new
+    // datasets row per run with the same name, and the platform resolves names to
+    // the latest version (ORDER BY created_at DESC LIMIT 1). Listing every
+    // historical version inflated counts (audit #4: KPI said 1888), so return
+    // only the latest version per name.
+    const rows = await ctx.db.query<{ id: string; name: string; object_key: string; row_count: number; created_at: unknown }>(
+      `SELECT id, name, object_key, row_count, created_at FROM (
+         SELECT DISTINCT ON (name) id, name, object_key, row_count, created_at
+         FROM datasets WHERE org_id = $1 AND project_id = $2
+         ORDER BY name, created_at DESC
+       ) latest ORDER BY created_at DESC`,
       [orgId, projectId],
     );
     const out: DatasetMeta[] = [];
-    for (const r of rows) out.push({ id: r.id, name: r.name, objectKey: r.object_key, rowCount: r.row_count, columns: await columnsFor(r.id) });
+    for (const r of rows) out.push({ id: r.id, name: r.name, objectKey: r.object_key, rowCount: r.row_count, createdAt: iso(r.created_at), columns: await columnsFor(r.id) });
     return out;
   }
 
   async function get(orgId: string, id: string): Promise<DatasetMeta | null> {
-    const rows = await ctx.db.query<{ id: string; name: string; object_key: string; row_count: number }>(
-      `SELECT id, name, object_key, row_count FROM datasets WHERE org_id = $1 AND id = $2`,
+    const rows = await ctx.db.query<{ id: string; name: string; object_key: string; row_count: number; created_at: unknown }>(
+      `SELECT id, name, object_key, row_count, created_at FROM datasets WHERE org_id = $1 AND id = $2`,
       [orgId, id],
     );
     const r = rows[0];
     if (!r) return null;
-    return { id: r.id, name: r.name, objectKey: r.object_key, rowCount: r.row_count, columns: await columnsFor(r.id) };
+    return { id: r.id, name: r.name, objectKey: r.object_key, rowCount: r.row_count, createdAt: iso(r.created_at), columns: await columnsFor(r.id) };
   }
 
   async function columnsFor(datasetId: string): Promise<DatasetColumn[]> {
