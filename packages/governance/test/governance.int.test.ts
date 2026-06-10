@@ -48,5 +48,27 @@ describe('governance: marking-based mandatory access control', () => {
 
     const clr = await server.app.inject({ method: 'GET', url: '/api/governance/me/clearances', headers: a });
     expect((clr.json().clearances as Array<{ name: string }>).some((m) => m.name === 'PII')).toBe(true);
+
+    // read-back: marking lists the dataset it's applied to and the role cleared for it
+    const mds = await server.app.inject({ method: 'GET', url: `/api/governance/markings/${mid}/datasets`, headers: a });
+    expect((mds.json().datasets as Array<{ datasetId: string; name: string }>).some((d) => d.datasetId === did && d.name === 'govdata')).toBe(true);
+    const mrs = await server.app.inject({ method: 'GET', url: `/api/governance/markings/${mid}/roles`, headers: a });
+    expect((mrs.json().roles as Array<{ roleId: string; name: string }>).some((r) => r.roleId === 'role_admin' && r.name === 'admin')).toBe(true);
+
+    // revoke the role clearance -> no longer listed, dataset locked again
+    const revoke = await server.app.inject({ method: 'DELETE', url: `/api/governance/markings/${mid}/roles/role_admin`, headers: a });
+    expect(revoke.statusCode).toBe(200);
+    const mrs2 = await server.app.inject({ method: 'GET', url: `/api/governance/markings/${mid}/roles`, headers: a });
+    expect((mrs2.json().roles as Array<{ roleId: string }>).some((r) => r.roleId === 'role_admin')).toBe(false);
+    expect((await server.app.inject({ method: 'GET', url: `/api/datasets/${did}/preview`, headers: a })).statusCode).toBe(403);
+    expect((await server.app.inject({ method: 'DELETE', url: `/api/governance/markings/${mid}/roles/role_admin`, headers: a })).statusCode).toBe(404);
+
+    // remove the marking from the dataset -> no longer listed, dataset readable again
+    const unmark = await server.app.inject({ method: 'DELETE', url: `/api/governance/markings/${mid}/datasets/${did}`, headers: a });
+    expect(unmark.statusCode).toBe(200);
+    const mds2 = await server.app.inject({ method: 'GET', url: `/api/governance/markings/${mid}/datasets`, headers: a });
+    expect((mds2.json().datasets as Array<{ datasetId: string }>).some((d) => d.datasetId === did)).toBe(false);
+    expect((await server.app.inject({ method: 'GET', url: `/api/datasets/${did}/preview`, headers: a })).statusCode).toBe(200);
+    expect((await server.app.inject({ method: 'DELETE', url: `/api/governance/markings/${mid}/datasets/${did}`, headers: a })).statusCode).toBe(404);
   });
 });

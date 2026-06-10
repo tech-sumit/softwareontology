@@ -57,6 +57,40 @@ export function createGovernanceService(ctx: ModuleContext) {
     return required.every((r) => cleared.has(r.marking_id));
   }
 
+  async function markingDatasets(orgId: string, markingId: string): Promise<Array<{ datasetId: string; name: string }>> {
+    const rows = await ctx.db.query<{ dataset_id: string; name: string }>(
+      `SELECT dm.dataset_id, d.name FROM dataset_markings dm
+         JOIN datasets d ON d.id = dm.dataset_id
+        WHERE dm.marking_id = $1 AND d.org_id = $2 ORDER BY d.name`, [markingId, orgId],
+    );
+    return rows.map((r) => ({ datasetId: r.dataset_id, name: r.name }));
+  }
+
+  async function markingRoles(orgId: string, markingId: string): Promise<Array<{ roleId: string; name: string }>> {
+    const rows = await ctx.db.query<{ role_id: string; name: string }>(
+      `SELECT rm.role_id, r.name FROM role_markings rm
+         JOIN roles r ON r.id = rm.role_id
+        WHERE rm.marking_id = $1 AND r.org_id = $2 ORDER BY r.name`, [markingId, orgId],
+    );
+    return rows.map((r) => ({ roleId: r.role_id, name: r.name }));
+  }
+
+  async function removeMarkingFromDataset(orgId: string, markingId: string, datasetId: string): Promise<boolean> {
+    await requireMarking(orgId, markingId);
+    const r = await ctx.db.query<{ dataset_id: string }>(
+      `DELETE FROM dataset_markings WHERE dataset_id = $1 AND marking_id = $2 RETURNING dataset_id`, [datasetId, markingId],
+    );
+    return r.length > 0;
+  }
+
+  async function revokeMarkingFromRole(orgId: string, markingId: string, roleId: string): Promise<boolean> {
+    await requireMarking(orgId, markingId);
+    const r = await ctx.db.query<{ role_id: string }>(
+      `DELETE FROM role_markings WHERE role_id = $1 AND marking_id = $2 RETURNING role_id`, [roleId, markingId],
+    );
+    return r.length > 0;
+  }
+
   /** Output dataset inherits the union of input datasets' markings (used by pipeline propagation, Plan 34). */
   async function propagateMarkings(inputDatasetIds: string[], outputDatasetId: string): Promise<void> {
     if (inputDatasetIds.length === 0) return;
@@ -68,5 +102,5 @@ export function createGovernanceService(ctx: ModuleContext) {
     }
   }
 
-  return { createMarking, listMarkings, applyToDataset, grantToRole, datasetMarkings, userClearances, canReadDataset, propagateMarkings };
+  return { createMarking, listMarkings, applyToDataset, grantToRole, datasetMarkings, userClearances, canReadDataset, propagateMarkings, markingDatasets, markingRoles, removeMarkingFromDataset, revokeMarkingFromRole };
 }
