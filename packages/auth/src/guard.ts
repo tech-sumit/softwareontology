@@ -9,13 +9,19 @@ declare module 'fastify' {
   }
 }
 
-/** Fastify preHandler: require a valid session AND the given permission. */
+/** Fastify preHandler: require a valid session OR bearer API token AND the given permission. */
 export function requirePermission(permission: string): preHandlerHookHandler {
   return async (req, reply) => {
-    const token = req.cookies[SESSION_COOKIE];
-    if (!token) return reply.code(401).send({ error: 'unauthenticated' });
     const auth = createAuthService(req.server.ctx.db);
-    const user = await auth.validateSession(token);
+    let user: AuthUser | null = null;
+    const header = req.headers.authorization;
+    if (header && header.startsWith('Bearer ')) {
+      // Personal API token (`so_…`) — resolves to the exact AuthUser shape a session yields.
+      user = await auth.validateApiToken(header.slice('Bearer '.length));
+    } else {
+      const token = req.cookies[SESSION_COOKIE];
+      if (token) user = await auth.validateSession(token);
+    }
     if (!user) return reply.code(401).send({ error: 'unauthenticated' });
     if (!hasPermission(user.permissions, permission)) {
       return reply.code(403).send({ error: 'forbidden' });

@@ -39,6 +39,15 @@ const MIGRATIONS = [
      expires_at timestamptz NOT NULL,
      created_at timestamptz NOT NULL DEFAULT now()
    )`,
+  `CREATE TABLE IF NOT EXISTS api_tokens (
+     id text PRIMARY KEY,
+     org_id text NOT NULL,
+     user_id text NOT NULL REFERENCES users(id),
+     name text NOT NULL,
+     token_hash text NOT NULL,
+     created_at timestamptz NOT NULL DEFAULT now(),
+     last_used_at timestamptz
+   )`,
 ];
 
 export async function runMigrations(db: Db): Promise<void> {
