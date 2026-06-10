@@ -7,6 +7,8 @@ export interface ObjectTypeLineage { objectType: string; backingDataset: string 
 export interface AuditEntry { actor: string | null; actorEmail?: string | null; action: string; objectType: string; primaryKey: string | null; createdAt: string; }
 export interface SearchHit { kind: string; name: string; }
 export interface OpenApiSpec { paths: Record<string, Record<string, unknown>>; [key: string]: unknown; }
+export interface SavedDashboard { id: string; name: string; objectType: string; groupBy: string; fn: 'count' | 'sum' | 'avg'; property: string | null; createdAt: string; }
+export interface ApiTokenSummary { id: string; name: string; createdAt: string; lastUsedAt: string | null; }
 
 let currentProjectId = 'project_default';
 export function setActiveProject(id: string): void { currentProjectId = id; }
@@ -55,7 +57,14 @@ export const api = {
   createUser: (email: string, password: string, roleNames: string[] = []) => req<{ user: unknown }>('POST', '/admin/users', { email, password, roleNames }),
   deleteUser: (id: string) => req<{ ok: boolean }>('DELETE', `/admin/users/${id}`),
   deleteRole: (id: string) => req<{ ok: boolean }>('DELETE', `/admin/roles/${id}`),
-  aggregate: (objectType: string, groupBy: string) => req<{ buckets: Array<{ group: string; count: number }> }>('POST', '/dashboards/aggregate', { objectType, groupBy }),
+  aggregate: (objectType: string, groupBy: string, fn?: 'count' | 'sum' | 'avg', property?: string) =>
+    req<{ buckets: Array<{ group: string; count: number; value?: number }> }>('POST', '/dashboards/aggregate', { objectType, groupBy, ...(fn ? { fn } : {}), ...(property ? { property } : {}) }),
+  saveDashboard: (body: { name: string; objectType: string; groupBy: string; fn?: 'count' | 'sum' | 'avg'; property?: string | null }) => req<{ id: string }>('POST', '/dashboards', body),
+  listDashboards: () => req<{ dashboards: SavedDashboard[] }>('GET', '/dashboards'),
+  deleteDashboard: (id: string) => req<{ ok: boolean }>('DELETE', `/dashboards/${id}`),
+  createApiToken: (name: string) => req<{ id: string; token: string }>('POST', '/auth/tokens', { name }),
+  listApiTokens: () => req<{ tokens: ApiTokenSummary[] }>('GET', '/auth/tokens'),
+  deleteApiToken: (id: string) => req<{ ok: boolean }>('DELETE', `/auth/tokens/${id}`),
   ask: (objectType: string, question: string) => req<{ answer: string }>('POST', '/aip/ask', { objectType, question }),
   aipIndex: (objectType: string) => req<{ indexed: number }>('POST', '/aip/index', { objectType }),
   aipSearch: (objectType: string, query: string, k = 10) => req<{ results: Array<{ primaryKey: string; score: number; doc: string }> }>('POST', '/aip/search', { objectType, query, k }),

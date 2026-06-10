@@ -73,8 +73,9 @@ export const HELP: Record<string, HelpEntry> = {
     'The global search in the top bar lands you here.',
   ]},
   'console:dashboards': { title: 'Dashboards', steps: [
-    'Build a group-by aggregation over an object set (count, sum, average) and view it as a bar chart.',
-    'Pick the object type, the property to group by, and the metric.',
+    'Build a group-by aggregation over an object set and view it as a bar chart.',
+    'Pick the object type, the property to group by, and the metric — count, or sum/avg over a numeric property.',
+    'Save a chart by name; saved dashboards are listed below and reload + run with one click.',
   ]},
   'console:governance': { title: 'Governance', steps: [
     'Markings are mandatory access controls. Create a marking (e.g. PII), apply it to a dataset, and grant clearance to roles.',
@@ -84,7 +85,8 @@ export const HELP: Record<string, HelpEntry> = {
   'console:apisdk': { title: 'API & SDK', steps: [
     'The platform publishes an OpenAPI 3.1 spec covering every endpoint.',
     'Generate a fully-typed client with `pnpm gen:client`, or call the REST API directly.',
-    'Use this page to view the spec and copy endpoint details.',
+    'Create a personal API token and call any endpoint with `Authorization: Bearer so_…` — the token is shown once, only its hash is stored.',
+    'Each endpoint has a copy-curl button that produces a ready-to-run request.',
   ]},
   'console:ask': { title: 'Ask', steps: [
     'Ask a natural-language question over your ontology.',
