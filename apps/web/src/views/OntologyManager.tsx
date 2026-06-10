@@ -15,6 +15,7 @@ interface NewProp { apiName: string; column: string; type: string }
 
 export function OntologyManager() {
   const [types, setTypes] = useState<Array<{ apiName: string }>>([]);
+  const [typeFilter, setTypeFilter] = useState('');
   const [active, setActive] = useState<string | null>(null);
   const [detail, setDetail] = useState<Detail | null>(null);
   const [objects, setObjects] = useState<Record<string, unknown>[] | null>(null);
@@ -117,11 +118,14 @@ export function OntologyManager() {
       <div className="card" style={{ width: 240, padding: 14, flexShrink: 0 }}>
         <div className="label" style={{ color: 'var(--muted)' }}>OBJECT TYPES</div>
         {types.length === 0 ? <p className="muted" style={{ fontSize: 13 }}>None yet.</p> : (
-          <ul className="plain" style={{ margin: '8px 0' }}>
-            {types.map((t) => (
-              <li key={t.apiName} className={`listln${active === t.apiName ? ' sel' : ''}`} style={{ fontWeight: 600 }} onClick={() => selectType(t.apiName)}>{t.apiName}</li>
-            ))}
-          </ul>
+          <>
+            <input aria-label="filter types" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} placeholder="Filter…" style={{ width: '100%', marginTop: 8, boxSizing: 'border-box' }} />
+            <ul className="plain" style={{ margin: '8px 0' }}>
+              {types.filter((t) => t.apiName.toLowerCase().includes(typeFilter.trim().toLowerCase())).map((t) => (
+                <li key={t.apiName} className={`listln${active === t.apiName ? ' sel' : ''}`} style={{ fontWeight: 600 }} onClick={() => selectType(t.apiName)}>{t.apiName}</li>
+              ))}
+            </ul>
+          </>
         )}
         <button onClick={() => void openNew()}>New object type</button>
       </div>

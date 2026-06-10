@@ -4,7 +4,7 @@ export interface PropertyMeta { apiName: string; type: string; }
 export interface AppWidget { id: string; type: string; title?: string; config: Record<string, unknown>; }
 export interface AppDefinition { widgets: AppWidget[]; }
 export interface ObjectTypeLineage { objectType: string; backingDataset: string | null; actions: string[]; links: string[]; }
-export interface AuditEntry { actor: string | null; action: string; objectType: string; primaryKey: string | null; createdAt: string; }
+export interface AuditEntry { actor: string | null; actorEmail?: string | null; action: string; objectType: string; primaryKey: string | null; createdAt: string; }
 export interface SearchHit { kind: string; name: string; }
 export interface OpenApiSpec { paths: Record<string, Record<string, unknown>>; [key: string]: unknown; }
 
@@ -65,7 +65,7 @@ export const api = {
   createApp: (name: string, definition: AppDefinition) => req<{ id: string }>('POST', '/apps', { name, definition }),
   updateApp: (id: string, body: { name?: string; definition?: AppDefinition }) => req<{ ok: boolean }>('PUT', `/apps/${id}`, body),
   deleteApp: (id: string) => req<{ ok: boolean }>('DELETE', `/apps/${id}`),
-  listDatasets: () => req<{ datasets: Array<{ id: string; name: string; rowCount?: number }> }>('GET', '/datasets'),
+  listDatasets: () => req<{ datasets: Array<{ id: string; name: string; rowCount?: number; createdAt?: string }> }>('GET', '/datasets'),
   listProjects: () => req<{ projects: Array<{ id: string; name: string; description?: string; role?: 'owner' | 'editor' | 'viewer' | 'admin' }> }>('GET', '/projects'),
   createProject: (name: string, description = '') => req<{ id: string }>('POST', '/projects', { name, description }),
   updateProject: (id: string, patch: { name?: string; description?: string }) => req<{ id: string; name: string; description?: string }>('PATCH', `/projects/${id}`, patch),
@@ -120,7 +120,13 @@ export const api = {
   // lineage: GET /lineage/object-types/:apiName → { lineage: { objectType, backingDataset, actions, links } }
   getLineage: (objectType: string) => req<{ lineage: ObjectTypeLineage }>('GET', `/lineage/object-types/${encodeURIComponent(objectType)}`),
   // catalog: audit → { entries: AuditEntry[] }; search → { hits: SearchHit[] }
-  catalogAudit: () => req<{ entries: AuditEntry[] }>('GET', '/catalog/audit'),
+  catalogAudit: (opts?: { limit?: number; offset?: number }) => {
+    const qs = new URLSearchParams();
+    if (opts?.limit !== undefined) qs.set('limit', String(opts.limit));
+    if (opts?.offset !== undefined) qs.set('offset', String(opts.offset));
+    const q = qs.toString();
+    return req<{ entries: AuditEntry[] }>('GET', `/catalog/audit${q ? `?${q}` : ''}`);
+  },
   catalogSearch: (q: string) => req<{ hits: SearchHit[] }>('GET', `/catalog/search?q=${encodeURIComponent(q)}`),
   // openapi: full OpenAPI 3.1 doc keyed by path → { method: opObj }
   openapiSpec: () => req<OpenApiSpec>('GET', '/openapi/spec'),

@@ -1,13 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { timeAgo } from '../time';
 
 type Run = { id: string; status: string; rowCount: number | null; startedAt: string; pipeline: string };
-function rel(iso: string): string {
-  const t = Date.parse(iso); if (Number.isNaN(t)) return '';
-  const s = Math.max(0, (Date.now() - t) / 1000);
-  if (s < 60) return 'just now'; if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`; return `${Math.floor(s / 86400)}d ago`;
-}
 
 export function ProjectOverview({ projectName, onGo }: { projectName: string; onGo: (s: string) => void }) {
   const [c, setC] = useState({ datasets: 0, pipelines: 0, connectors: 0, apps: 0 });
@@ -53,7 +48,7 @@ export function ProjectOverview({ projectName, onGo }: { projectName: string; on
         <div className="card"><div className="pad" style={{ paddingBottom: 2 }}><h3>Recent pipeline runs</h3></div>
           <div className="feed">
             {activity.length === 0 ? <div className="feeditem"><div className="t muted">No runs yet — create a pipeline to get started.</div></div> :
-              activity.map((r) => (<div className="feeditem" key={r.id}><div className={`dot ${dc(r.status)}`}>{di(r.status)}</div><div className="t"><b>{r.pipeline}</b> {r.status}{r.rowCount != null ? ` · ${r.rowCount} rows` : ''}</div><div className="w">{rel(r.startedAt)}</div></div>))}
+              activity.map((r) => (<div className="feeditem" key={r.id}><div className={`dot ${dc(r.status)}`}>{di(r.status)}</div><div className="t"><b>{r.pipeline}</b> {r.status}{r.rowCount != null ? ` · ${r.rowCount} rows` : ''}</div><div className="w">{timeAgo(r.startedAt)}</div></div>))}
           </div>
         </div>
         <div><h3 style={{ margin: '0 0 12px', fontSize: 13.5, color: '#2b3550' }}>Recent datasets</h3>

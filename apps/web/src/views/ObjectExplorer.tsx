@@ -21,6 +21,7 @@ function parseEdits(raw: string): Record<string, unknown> {
 
 export function ObjectExplorer() {
   const [types, setTypes] = useState<Array<{ apiName: string }>>([]);
+  const [typeFilter, setTypeFilter] = useState('');
   const [active, setActive] = useState<string | null>(null);
   const [detail, setDetail] = useState<TypeDetail | null>(null);
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
@@ -81,11 +82,14 @@ export function ObjectExplorer() {
       <div className="card" style={{ width: 220, padding: 14, flexShrink: 0 }}>
         <div className="label" style={{ color: 'var(--muted)' }}>OBJECT TYPES</div>
         {types.length === 0 ? <p className="muted" style={{ fontSize: 13 }}>None yet.</p> : (
-          <ul className="plain" style={{ margin: '8px 0' }}>
-            {types.map((t) => (
-              <li key={t.apiName} className={`listln${active === t.apiName ? ' sel' : ''}`} style={{ fontWeight: 600 }} onClick={() => void selectType(t.apiName)}>{t.apiName}</li>
-            ))}
-          </ul>
+          <>
+            <input aria-label="filter types" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} placeholder="Filter…" style={{ width: '100%', marginTop: 8, boxSizing: 'border-box' }} />
+            <ul className="plain" style={{ margin: '8px 0' }}>
+              {types.filter((t) => t.apiName.toLowerCase().includes(typeFilter.trim().toLowerCase())).map((t) => (
+                <li key={t.apiName} className={`listln${active === t.apiName ? ' sel' : ''}`} style={{ fontWeight: 600 }} onClick={() => void selectType(t.apiName)}>{t.apiName}</li>
+              ))}
+            </ul>
+          </>
         )}
       </div>
 
