@@ -69,39 +69,53 @@ export function AdminView() {
       </div>
       <div className="detail">
         <h3 style={{ marginTop: 0 }}>New user</h3>
-        <label htmlFor="ne">Email</label>
-        <input id="ne" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <label htmlFor="np">Password</label>
-        <input id="np" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        <label>Roles</label>
-        {roles.length === 0
-          ? <p className="muted">No roles yet.</p>
-          : roles.map((r) => (
-              <label key={r.id} style={{ display: 'block', fontWeight: 'normal' }}>
-                <input
-                  type="checkbox"
-                  checked={userRoleNames.includes(r.name)}
-                  onChange={() => setUserRoleNames((prev) => toggle(prev, r.name))}
-                /> {r.name}
-              </label>
-            ))}
+        <div className="field">
+          <label htmlFor="ne">Email</label>
+          <input id="ne" aria-label="new user email" value={email} placeholder="user@company.com" onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <div className="field">
+          <label htmlFor="np">Password</label>
+          <input id="np" aria-label="new user password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        </div>
+        <div className="field">
+          <label>Roles</label>
+          <div style={{ maxHeight: 180, overflowY: 'auto', border: '1px solid var(--line)', borderRadius: 8, padding: 8 }}>
+            {roles.length === 0
+              ? <p className="muted" style={{ margin: 0 }}>No roles yet.</p>
+              : roles.map((r) => (
+                  <label key={r.id} style={{ display: 'block', fontWeight: 'normal' }}>
+                    <input
+                      type="checkbox"
+                      checked={userRoleNames.includes(r.name)}
+                      onChange={() => setUserRoleNames((prev) => toggle(prev, r.name))}
+                    /> {r.name}
+                  </label>
+                ))}
+          </div>
+        </div>
         <div style={{ marginTop: 10 }}><button onClick={addUser}>Create user</button></div>
 
         <h3 style={{ marginTop: 24 }}>New role</h3>
-        <label htmlFor="nr">Name</label>
-        <input id="nr" value={roleName} onChange={(e) => setRoleName(e.target.value)} />
-        <label>Permissions</label>
-        {permissions.length === 0
-          ? <p className="muted">No permissions available.</p>
-          : permissions.map((p) => (
-              <label key={p} style={{ display: 'block', fontWeight: 'normal' }}>
-                <input
-                  type="checkbox"
-                  checked={rolePerms.includes(p)}
-                  onChange={() => setRolePerms((prev) => toggle(prev, p))}
-                /> {p}
-              </label>
-            ))}
+        <div className="field">
+          <label htmlFor="nr">Name</label>
+          <input id="nr" aria-label="new role name" value={roleName} placeholder="e.g. analyst" onChange={(e) => setRoleName(e.target.value)} />
+        </div>
+        <div className="field">
+          <label>Permissions</label>
+          <div style={{ maxHeight: 180, overflowY: 'auto', border: '1px solid var(--line)', borderRadius: 8, padding: 8 }}>
+            {permissions.length === 0
+              ? <p className="muted" style={{ margin: 0 }}>No permissions available.</p>
+              : permissions.map((p) => (
+                  <label key={p} style={{ display: 'block', fontWeight: 'normal' }}>
+                    <input
+                      type="checkbox"
+                      checked={rolePerms.includes(p)}
+                      onChange={() => setRolePerms((prev) => toggle(prev, p))}
+                    /> {p}
+                  </label>
+                ))}
+          </div>
+        </div>
         <div style={{ marginTop: 10 }}><button onClick={addRole}>Create role</button></div>
 
         {msg ? <div style={{ color: '#3fb950', marginTop: 10 }}>{msg}</div> : null}

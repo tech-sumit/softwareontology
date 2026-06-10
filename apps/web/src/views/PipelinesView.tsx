@@ -45,7 +45,7 @@ export function PipelinesView() {
         <div style={{ minWidth: 220 }}>
           <h3>In this project</h3>
           {pipelines.length === 0 ? <p style={{ color: 'var(--muted)' }}>None yet.</p> : (
-            <ul className="plain">{pipelines.map((p) => <li key={p.id} className={sel === p.id ? 'sel' : ''} style={{ cursor: 'pointer', padding: '4px 0' }} onClick={() => loadRuns(p.id)}>{p.name} <em style={{ color: 'var(--muted)' }}>({p.inputs.join(', ')})</em></li>)}</ul>
+            <ul className="plain">{pipelines.map((p) => <li key={p.id} className={`listln${sel === p.id ? ' sel' : ''}`} onClick={() => loadRuns(p.id)}>{p.name} <em style={{ color: 'var(--muted)' }}>({p.inputs.join(', ')})</em></li>)}</ul>
           )}
         </div>
         <div style={{ flex: 1 }}>

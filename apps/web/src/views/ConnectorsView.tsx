@@ -75,65 +75,111 @@ export function ConnectorsView() {
   }
 
   return (
-    <div className="card">
-      <h2>Connectors</h2>
-      <p style={{ color: 'var(--muted)' }}>Pull external data into this project as datasets. Create a connector, then Sync to ingest.</p>
+    <>
+      <div className="card pad">
+        <h2>Connectors</h2>
+        <p style={{ color: 'var(--muted)' }}>Pull external data into this project as datasets. Create a connector, then Sync to ingest.</p>
 
-      <div style={{ borderTop: '1px solid var(--line)', marginTop: 12, paddingTop: 12 }}>
-        <h3>Database (Postgres)</h3>
-        <ConnectorList connectors={dbConns} onSync={syncDb} />
-        <div style={{ marginTop: 8 }}>
-          <label htmlFor="db-name">Name</label> <input id="db-name" value={dbName} onChange={(e) => setDbName(e.target.value)} placeholder="sales-db" />
-          <label htmlFor="db-conn"> Connection string</label> <input id="db-conn" value={dbConnString} onChange={(e) => setDbConnString(e.target.value)} placeholder="postgresql://user:pass@host:5432/db" style={{ width: 320 }} />
-          <label htmlFor="db-table"> Source table</label> <input id="db-table" value={dbTable} onChange={(e) => setDbTable(e.target.value)} placeholder="public.orders" />
-          <button onClick={createDb}>Create</button>
+        <div style={{ borderTop: '1px solid var(--line)', marginTop: 12, paddingTop: 12 }}>
+          <h3>Database (Postgres)</h3>
+          <ConnectorList connectors={dbConns} onSync={syncDb} />
+          {dbMsg ? <div style={{ color: '#3fb950', marginTop: 8 }}>{dbMsg}</div> : null}
+          {dbErr ? <div className="err">{dbErr}</div> : null}
         </div>
-        {dbMsg ? <div style={{ color: '#3fb950', marginTop: 8 }}>{dbMsg}</div> : null}
-        {dbErr ? <div className="err">{dbErr}</div> : null}
+
+        <div style={{ borderTop: '1px solid var(--line)', marginTop: 16, paddingTop: 12 }}>
+          <h3>Cloud (S3 / REST)</h3>
+          <ConnectorList connectors={cloudConns} onSync={syncCloud} />
+          {cloudMsg ? <div style={{ color: '#3fb950', marginTop: 8 }}>{cloudMsg}</div> : null}
+          {cloudErr ? <div className="err">{cloudErr}</div> : null}
+        </div>
+
+        <div style={{ borderTop: '1px solid var(--line)', marginTop: 16, paddingTop: 12 }}>
+          <h3>Airflow (connector-runner)</h3>
+          <ConnectorList connectors={airflowConns} onSync={syncAirflow} />
+          {afMsg ? <div style={{ color: '#3fb950', marginTop: 8 }}>{afMsg}</div> : null}
+          {afErr ? <div className="err">{afErr}</div> : null}
+        </div>
       </div>
 
-      <div style={{ borderTop: '1px solid var(--line)', marginTop: 16, paddingTop: 12 }}>
-        <h3>Cloud (S3 / REST)</h3>
-        <ConnectorList connectors={cloudConns} onSync={syncCloud} />
-        <div style={{ margin: '8px 0' }}>
+      <div className="card pad formcard" style={{ marginTop: 18 }}>
+        <h3>New connector</h3>
+
+        <h4 style={{ margin: '14px 0 10px' }}>Postgres</h4>
+        <div className="frow">
+          <div className="field">
+            <label htmlFor="db-name">Name</label>
+            <input id="db-name" value={dbName} onChange={(e) => setDbName(e.target.value)} placeholder="sales-db" />
+          </div>
+          <div className="field">
+            <label htmlFor="db-table">Source table</label>
+            <input id="db-table" value={dbTable} onChange={(e) => setDbTable(e.target.value)} placeholder="public.orders" />
+          </div>
+        </div>
+        <div className="field">
+          <label htmlFor="db-conn">Connection string</label>
+          <input id="db-conn" autoComplete="off" value={dbConnString} onChange={(e) => setDbConnString(e.target.value)} placeholder="postgresql://user:pass@host:5432/db" />
+        </div>
+        <button onClick={createDb}>Create</button>
+
+        <h4 style={{ margin: '22px 0 10px' }}>S3 / REST</h4>
+        <div style={{ margin: '0 0 10px' }}>
           <label><input type="radio" name="cloud-kind" checked={cloudKind === 's3'} onChange={() => setCloudKind('s3')} aria-label="s3 source" /> S3</label>{' '}
           <label><input type="radio" name="cloud-kind" checked={cloudKind === 'rest'} onChange={() => setCloudKind('rest')} aria-label="rest source" /> REST</label>
         </div>
-        <div>
-          <label htmlFor="cloud-name">Name</label> <input id="cloud-name" value={cloudName} onChange={(e) => setCloudName(e.target.value)} placeholder="events" />
+        <div className="frow">
+          <div className="field">
+            <label htmlFor="cloud-name">Name</label>
+            <input id="cloud-name" value={cloudName} onChange={(e) => setCloudName(e.target.value)} placeholder="events" />
+          </div>
           {cloudKind === 's3' ? (
-            <>
-              <label htmlFor="s3-url"> S3 URL</label> <input id="s3-url" value={s3Url} onChange={(e) => setS3Url(e.target.value)} placeholder="s3://bucket/data.csv" style={{ width: 280 }} />
-              <label htmlFor="s3-format"> Format</label>{' '}
+            <div className="field">
+              <label htmlFor="s3-format">Format</label>
               <select id="s3-format" value={s3Format} onChange={(e) => setS3Format(e.target.value)}>
                 <option value="csv">csv</option><option value="parquet">parquet</option>
               </select>
-            </>
+            </div>
           ) : (
-            <>
-              <label htmlFor="rest-url"> URL</label> <input id="rest-url" value={restUrl} onChange={(e) => setRestUrl(e.target.value)} placeholder="https://api.example.com/items" style={{ width: 280 }} />
-              <label htmlFor="rest-path"> Array path (optional)</label> <input id="rest-path" value={restArrayPath} onChange={(e) => setRestArrayPath(e.target.value)} placeholder="data" />
-            </>
+            <div className="field">
+              <label htmlFor="rest-path">Array path (optional)</label>
+              <input id="rest-path" value={restArrayPath} onChange={(e) => setRestArrayPath(e.target.value)} placeholder="data" />
+            </div>
           )}
-          <button onClick={createCloud}>Create</button>
         </div>
-        {cloudMsg ? <div style={{ color: '#3fb950', marginTop: 8 }}>{cloudMsg}</div> : null}
-        {cloudErr ? <div className="err">{cloudErr}</div> : null}
-      </div>
+        {cloudKind === 's3' ? (
+          <div className="field">
+            <label htmlFor="s3-url">S3 URL</label>
+            <input id="s3-url" autoComplete="off" value={s3Url} onChange={(e) => setS3Url(e.target.value)} placeholder="s3://bucket/data.csv" />
+          </div>
+        ) : (
+          <div className="field">
+            <label htmlFor="rest-url">URL</label>
+            <input id="rest-url" autoComplete="off" value={restUrl} onChange={(e) => setRestUrl(e.target.value)} placeholder="https://api.example.com/items" />
+          </div>
+        )}
+        <button onClick={createCloud}>Create</button>
 
-      <div style={{ borderTop: '1px solid var(--line)', marginTop: 16, paddingTop: 12 }}>
-        <h3>Airflow (connector-runner)</h3>
-        <ConnectorList connectors={airflowConns} onSync={syncAirflow} />
-        <div style={{ marginTop: 8 }}>
-          <label htmlFor="af-name">Name</label> <input id="af-name" value={afName} onChange={(e) => setAfName(e.target.value)} placeholder="warehouse" />
-          <label htmlFor="af-provider"> Provider</label> <input id="af-provider" value={afProvider} onChange={(e) => setAfProvider(e.target.value)} placeholder="postgres" />
-          <label htmlFor="af-conn"> Conn</label> <input id="af-conn" value={afConn} onChange={(e) => setAfConn(e.target.value)} placeholder="conn id / dsn" />
-          <label htmlFor="af-query"> Query</label> <input id="af-query" value={afQuery} onChange={(e) => setAfQuery(e.target.value)} placeholder="SELECT * FROM t" style={{ width: 240 }} />
-          <button onClick={createAirflow}>Create</button>
+        <h4 style={{ margin: '22px 0 10px' }}>Airflow</h4>
+        <div className="frow">
+          <div className="field">
+            <label htmlFor="af-name">Name</label>
+            <input id="af-name" value={afName} onChange={(e) => setAfName(e.target.value)} placeholder="warehouse" />
+          </div>
+          <div className="field">
+            <label htmlFor="af-provider">Provider</label>
+            <input id="af-provider" value={afProvider} onChange={(e) => setAfProvider(e.target.value)} placeholder="postgres" />
+          </div>
         </div>
-        {afMsg ? <div style={{ color: '#3fb950', marginTop: 8 }}>{afMsg}</div> : null}
-        {afErr ? <div className="err">{afErr}</div> : null}
+        <div className="field">
+          <label htmlFor="af-conn">Conn</label>
+          <input id="af-conn" autoComplete="off" value={afConn} onChange={(e) => setAfConn(e.target.value)} placeholder="conn id / dsn" />
+        </div>
+        <div className="field">
+          <label htmlFor="af-query">Query</label>
+          <input id="af-query" value={afQuery} onChange={(e) => setAfQuery(e.target.value)} placeholder="SELECT * FROM t" />
+        </div>
+        <button onClick={createAirflow}>Create</button>
       </div>
-    </div>
+    </>
   );
 }

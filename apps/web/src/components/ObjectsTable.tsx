@@ -15,7 +15,7 @@ export function ObjectsTable({
         {rows.map((r) => {
           const id = String(r[pk]);
           return (
-            <tr key={id} className={selected === id ? 'sel' : ''} onClick={() => onSelect(id)} style={{ cursor: 'pointer' }}>
+            <tr key={id} className={`rowlink${selected === id ? ' sel' : ''}`} onClick={() => onSelect(id)} style={{ cursor: 'pointer' }}>
               {columns.map((c) => <td key={c}>{r[c] === null || r[c] === undefined ? '' : String(r[c])}</td>)}
             </tr>
           );

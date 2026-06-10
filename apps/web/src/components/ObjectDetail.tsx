@@ -14,12 +14,12 @@ export function ObjectDetail({ object, actions, onRun }: {
           </div>
         ))}
       </div>
-      {actions.length > 0 ? (
-        <div style={{ marginTop: 14 }}>
-          <h3>Actions</h3>
-          <div className="qa">{actions.map((a) => <button key={a.apiName} onClick={() => onRun(a.apiName)}>{a.apiName}</button>)}</div>
-        </div>
-      ) : null}
+      <div style={{ marginTop: 14 }}>
+        <h3>Actions</h3>
+        {actions.length > 0
+          ? <div className="qa">{actions.map((a) => <button key={a.apiName} onClick={() => onRun(a.apiName)}>{a.apiName}</button>)}</div>
+          : <p className="muted" style={{ fontSize: 12.5, margin: 0 }}>No actions defined for this type.</p>}
+      </div>
     </div>
   );
 }

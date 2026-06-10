@@ -107,9 +107,15 @@ export function AppsView() {
   }
 
   return (
-    <div className="card">
+    <div className="card pad">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><h2>Apps</h2><button onClick={startNew}>New app</button></div>
-      {apps.length === 0 ? <p style={{ color: 'var(--muted)' }}>No apps yet. Build one!</p> : (
+      {apps.length === 0 ? (
+        <div className="card pad" style={{ textAlign: 'center', padding: 36, marginTop: 8 }}>
+          <div style={{ fontSize: 30, marginBottom: 10 }}>▥</div>
+          <p style={{ color: 'var(--muted)', margin: '0 0 14px' }}>Apps are low-code views composed of widgets bound to your object types.</p>
+          <button onClick={startNew}>New app</button>
+        </div>
+      ) : (
         <table><thead><tr><th>Name</th><th></th></tr></thead>
           <tbody>{apps.map((a) => <tr key={a.id}><td>{a.name}</td><td style={{ textAlign: 'right' }}>
             <button onClick={() => run(a.id)}>Run</button> <button className="sec" onClick={() => startEdit(a.id)}>Edit</button> <button className="sec" onClick={() => remove(a.id)}>Delete</button>

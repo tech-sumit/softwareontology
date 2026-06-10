@@ -10,7 +10,7 @@ const SHARED = [
   { id: 'admin', icon: '⚙', name: 'Admin', desc: 'Users & roles' },
 ];
 export function ConsoleHome({ projects, archivedProjects, onOpenProject, onNewProject, onOpenSurface, onRestoreProject }: {
-  projects: Array<{ id: string; name: string }>; archivedProjects: Array<{ id: string; name: string }>; onOpenProject: (id: string) => void; onNewProject: () => void; onOpenSurface: (id: string) => void; onRestoreProject: (id: string) => void;
+  projects: Array<{ id: string; name: string; description?: string }>; archivedProjects: Array<{ id: string; name: string; description?: string }>; onOpenProject: (id: string) => void; onNewProject: () => void; onOpenSurface: (id: string) => void; onRestoreProject: (id: string) => void;
 }) {
   return (
     <>
@@ -21,6 +21,7 @@ export function ConsoleHome({ projects, archivedProjects, onOpenProject, onNewPr
           {projects.map((p) => (
             <div key={p.id} className="card pcard" onClick={() => onOpenProject(p.id)}>
               <div className="ph"><div className="pdot" style={{ background: colorFor(p.id) }}>{p.name.slice(0, 1).toUpperCase()}</div><div className="pn">{p.name}</div></div>
+              {p.description ? <div className="muted" style={{ fontSize: 13, marginBottom: 8 }}>{p.description}</div> : null}
               <div className="sub" style={{ margin: 0, fontSize: 13 }}>Open workspace →</div>
             </div>
           ))}

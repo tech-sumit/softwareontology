@@ -83,7 +83,7 @@ export function ObjectExplorer() {
         {types.length === 0 ? <p className="muted" style={{ fontSize: 13 }}>None yet.</p> : (
           <ul className="plain" style={{ margin: '8px 0' }}>
             {types.map((t) => (
-              <li key={t.apiName} className={active === t.apiName ? 'sel' : ''} style={{ cursor: 'pointer', padding: '6px 8px', borderRadius: 6, fontWeight: 600 }} onClick={() => void selectType(t.apiName)}>{t.apiName}</li>
+              <li key={t.apiName} className={`listln${active === t.apiName ? ' sel' : ''}`} style={{ fontWeight: 600 }} onClick={() => void selectType(t.apiName)}>{t.apiName}</li>
             ))}
           </ul>
         )}
@@ -107,10 +107,10 @@ export function ObjectExplorer() {
           <h2 style={{ marginTop: 0 }}>{String(selectedRow[pk])}</h2>
           <ObjectDetail object={selectedRow} actions={actions.map((a) => ({ apiName: a.apiName, kind: a.kind }))} onRun={(name) => void runAction(name)} />
 
-          {detail.links.length > 0 ? (
-            <div style={{ marginTop: 18 }}>
-              <h3>Linked objects</h3>
-              {detail.links.map((link) => {
+          <div style={{ marginTop: 18 }}>
+            <h3>Linked objects</h3>
+            {detail.links.length === 0 ? <p className="muted" style={{ fontSize: 12.5, margin: 0 }}>No links defined.</p> : null}
+            {detail.links.map((link) => {
                 const objs = linked[link.apiName];
                 return (
                   <div key={link.apiName} style={{ marginTop: 12 }}>
@@ -120,9 +120,8 @@ export function ObjectExplorer() {
                       : <ObjectsTable columns={Object.keys(objs[0] ?? {})} rows={objs} pk={Object.keys(objs[0] ?? {})[0] ?? ''} onSelect={() => {}} />}
                   </div>
                 );
-              })}
-            </div>
-          ) : null}
+            })}
+          </div>
 
           {msg ? <div style={{ color: '#3fb950', marginTop: 8 }}>{msg}</div> : null}
           {err ? <div className="err">{err}</div> : null}

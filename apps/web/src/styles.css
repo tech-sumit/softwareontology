@@ -115,3 +115,24 @@ ul.plain{list-style:none;padding:0;margin:0}
 .toast-err{background:var(--bad)}
 .toast-x{background:transparent;border:0;color:#fff;font-size:18px;line-height:1;cursor:pointer;padding:0}
 .branchsel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:13px;color:var(--ink)}
+/* stacked form fields */
+.field{display:flex;flex-direction:column;gap:5px;margin:0 0 14px}
+.field>label{font-size:12.5px;font-weight:600;color:var(--muted)}
+.field>input,.field>textarea,.field>select{width:100%;box-sizing:border-box;margin:0}
+.frow{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+.frow>.field{flex:1;min-width:180px;margin-bottom:0}
+.formcard{max-width:560px}
+/* clickability cues */
+.rowlink{cursor:pointer}
+.rowlink:hover{background:var(--accent-soft)}
+.listln{cursor:pointer;padding:6px 8px;border-radius:8px}
+.listln:hover{background:var(--accent-soft)}
+/* rail overflow */
+.rail>*{flex-shrink:0}
+.rail-projects{display:flex;flex-direction:column;align-items:center;gap:8px;overflow-y:auto;scrollbar-width:none;min-height:0;flex:0 1 auto;width:100%}
+.rail-projects::-webkit-scrollbar{display:none}
+/* login */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center}
+.login-card{width:380px;max-width:92vw}
+.login-brand{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.login-logo{width:34px;height:34px;border-radius:9px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px}

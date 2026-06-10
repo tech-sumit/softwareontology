@@ -6,7 +6,7 @@ import { AgentTrace, type AgentStep } from '../components/AgentTrace';
 export function AskView() {
   const [types, setTypes] = useState<ObjectTypeSummary[]>([]);
   const [ot, setOt] = useState('');
-  const [question, setQuestion] = useState('Summarize these objects.');
+  const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
   const [err, setErr] = useState('');
 
@@ -31,18 +31,24 @@ export function AskView() {
   async function runAgent() { setArun(true); try { setAgentRes(await api.aipAgent(aq)); } catch (e) { setAgentRes({ answer: (e as Error).message, steps: [] }); } finally { setArun(false); } }
 
   return (
-    <div className="card">
+    <div className="card pad">
       <h2>Ask (AIP)</h2>
       <p style={{ fontSize: 12, color: 'var(--muted)' }}>Default provider is <code>echo</code> (offline). Set AIP_PROVIDER=http + AIP_ENDPOINT for a real model.</p>
-      <label htmlFor="aot">Object type</label>
-      <select id="aot" value={ot} onChange={(e) => setOt(e.target.value)}>{types.map((t) => <option key={t.apiName} value={t.apiName}>{t.apiName}</option>)}</select>
-      <label htmlFor="q">Question</label>
-      <textarea id="q" rows={3} value={question} onChange={(e) => setQuestion(e.target.value)} />
-      <div style={{ margin: '10px 0' }}><button onClick={run}>Ask</button></div>
+      <div className="formcard">
+        <div className="field">
+          <label htmlFor="aot">Object type</label>
+          <select id="aot" value={ot} onChange={(e) => setOt(e.target.value)}>{types.map((t) => <option key={t.apiName} value={t.apiName}>{t.apiName}</option>)}</select>
+        </div>
+        <div className="field">
+          <label htmlFor="q">Question</label>
+          <textarea id="q" rows={3} value={question} placeholder="Summarize these objects." onChange={(e) => setQuestion(e.target.value)} />
+        </div>
+        <div style={{ margin: '0 0 10px' }}><button onClick={run}>Ask</button></div>
+      </div>
       {answer ? <pre style={{ whiteSpace: 'pre-wrap', background: '#f0f2f5', padding: 10, borderRadius: 6, fontSize: 12 }}>{answer}</pre> : null}
       {err ? <div className="err">{err}</div> : null}
 
-      <div className="card" style={{ marginTop: 18 }}>
+      <div className="card pad" style={{ marginTop: 18 }}>
         <h3>Semantic search</h3>
         <p className="muted">Embed an object type, then search it by meaning (not just keywords).</p>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -55,7 +61,7 @@ export function AskView() {
         <div style={{ marginTop: 12 }}><SearchResults hits={hits} /></div>
       </div>
 
-      <div className="card" style={{ marginTop: 18 }}>
+      <div className="card pad" style={{ marginTop: 18 }}>
         <h3>Ask the agent</h3>
         <p className="muted">Ask a question; the agent picks tools (search, sample, aggregate) over your ontology and shows its work.</p>
         <div style={{ display: 'flex', gap: 8 }}>

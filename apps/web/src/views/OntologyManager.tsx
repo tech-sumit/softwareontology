@@ -119,7 +119,7 @@ export function OntologyManager() {
         {types.length === 0 ? <p className="muted" style={{ fontSize: 13 }}>None yet.</p> : (
           <ul className="plain" style={{ margin: '8px 0' }}>
             {types.map((t) => (
-              <li key={t.apiName} className={active === t.apiName ? 'sel' : ''} style={{ cursor: 'pointer', padding: '6px 8px', borderRadius: 6, fontWeight: 600 }} onClick={() => selectType(t.apiName)}>{t.apiName}</li>
+              <li key={t.apiName} className={`listln${active === t.apiName ? ' sel' : ''}`} style={{ fontWeight: 600 }} onClick={() => selectType(t.apiName)}>{t.apiName}</li>
             ))}
           </ul>
         )}

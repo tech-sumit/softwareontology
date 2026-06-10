@@ -13,9 +13,11 @@ export function WorkspaceRail({ projects, activeProjectId, area, userInitial, on
       <div className="logo">◆</div>
       <button className={`ico ${area === 'console' ? 'active' : ''}`} title="Console" aria-label="Console" onClick={onConsole}>⌂</button>
       <div className="sep" />
-      {projects.map((p) => (
-        <button key={p.id} className={`av ${area === 'project' && p.id === activeProjectId ? 'active' : ''}`} style={{ background: colorFor(p.id) }} title={p.name} aria-label={`project ${p.name}`} onClick={() => onSelectProject(p.id)}>{p.name.slice(0, 1).toUpperCase()}</button>
-      ))}
+      <div className="rail-projects">
+        {projects.map((p) => (
+          <button key={p.id} className={`av ${area === 'project' && p.id === activeProjectId ? 'active' : ''}`} style={{ background: colorFor(p.id) }} title={p.name} aria-label={`project ${p.name}`} onClick={() => onSelectProject(p.id)}>{p.name.slice(0, 1).toUpperCase()}</button>
+        ))}
+      </div>
       <button className="ico" title="New project" aria-label="New project" onClick={onNewProject}>＋</button>
       <div className="spacer" />
       <div className="av" style={{ background: '#2b3650' }}>{userInitial}</div>
